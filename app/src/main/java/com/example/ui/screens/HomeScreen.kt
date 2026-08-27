@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,8 +28,10 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -69,13 +70,14 @@ import com.example.ui.theme.DarkBackground
 import com.example.ui.theme.DarkOutline
 import com.example.ui.theme.DarkOutlineVariant
 import com.example.ui.theme.DarkSurface
-import com.example.ui.theme.DarkSurfaceCard
 import com.example.ui.theme.DarkSurfaceVariant
 import com.example.ui.theme.LavenderPrimary
 import com.example.ui.theme.LavenderPrimaryContainer
 import com.example.ui.theme.LavenderSecondaryContainer
 import com.example.ui.theme.OnLavenderContainer
 import com.example.ui.theme.OnLavenderPrimary
+import com.example.ui.theme.SafeContainer
+import com.example.ui.theme.SafeGreen
 import com.example.ui.theme.TextHighContrast
 import com.example.ui.theme.TextMediumContrast
 import com.example.ui.theme.TextSubtle
@@ -83,6 +85,8 @@ import com.example.ui.theme.TextSubtle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    relativePhone: String = "",
+    onOpenSettings: () -> Unit = {},
     onAnalyzeText: (String) -> Unit,
     onAnalyzeImageUri: (Uri) -> Unit,
     onAnalyzeImageBitmap: (Bitmap) -> Unit,
@@ -122,7 +126,7 @@ fun HomeScreen(
             .padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App Header matching Professional Polish theme
+        // App Header with Settings Shortcut
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -130,31 +134,53 @@ fun HomeScreen(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 6.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(LavenderPrimary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
-                        contentDescription = "Logo AnTâm.AI",
-                        tint = OnLavenderPrimary,
-                        modifier = Modifier.size(28.dp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(LavenderPrimary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Shield,
+                            contentDescription = "Logo AnTâm.AI",
+                            tint = OnLavenderPrimary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Text(
+                        text = "AnTâm.AI",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
 
-                Spacer(modifier = Modifier.width(14.dp))
-
-                Text(
-                    text = "AnTâm.AI",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                // Settings Button (touch target > 48dp)
+                IconButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(DarkSurfaceVariant)
+                        .testTag("button_open_settings")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Cài đặt số người thân",
+                        tint = LavenderPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
             Text(
@@ -163,9 +189,36 @@ fun HomeScreen(
                 color = TextMediumContrast,
                 fontWeight = FontWeight.Medium
             )
+
+            // Family phone indicator if configured
+            if (relativePhone.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(SafeContainer.copy(alpha = 0.5f))
+                        .clickable { onOpenSettings() }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = null,
+                        tint = SafeGreen,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Đã lưu số người thân: $relativePhone",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = SafeGreen,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         // HERO BUTTON 1: CHỤP ẢNH MÀN HÌNH (LAVENDER HERO CARD)
         Card(
@@ -389,7 +442,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // TIP & REASSURANCE BANNER (MATCHING SPEC: bg-[#2B2930], border-[#49454F])
+        // TIP & REASSURANCE BANNER
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
@@ -469,7 +522,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // FOOTER BRANDING (MATCHING SPEC)
+        // FOOTER BRANDING
         HorizontalDivider(color = DarkOutline.copy(alpha = 0.5f), thickness = 1.dp)
         Spacer(modifier = Modifier.height(14.dp))
         Text(

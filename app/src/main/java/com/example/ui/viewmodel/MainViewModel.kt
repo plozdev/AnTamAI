@@ -1,31 +1,41 @@
 package com.example.ui.viewmodel
 
+import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.ScamAnalysisResult
 import com.example.data.repository.ScamAnalysisRepository
+import com.example.data.repository.SettingsRepository
 import com.example.util.ImageUtils
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed interface UiState {
     data object Home : UiState
+    data object Settings : UiState
     data class Analyzing(val message: String = "Đang phân tích...") : UiState
     data class Result(val data: ScamAnalysisResult) : UiState
     data class Error(val errorMessage: String) : UiState
 }
 
 class MainViewModel(
+    application: Application
+) : AndroidViewModel(application) {
+
     private val repository: ScamAnalysisRepository = ScamAnalysisRepository()
-) : ViewModel() {
+    private val settingsRepository: SettingsRepository = SettingsRepository(application)
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Home)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    val relativePhone: StateFlow<String> = settingsRepository.relativePhone
 
     private var lastAnalyzedAction: (() -> Unit)? = null
 
@@ -92,6 +102,18 @@ class MainViewModel(
                 }
             )
         }
+    }
+
+    fun saveRelativePhone(phone: String) {
+        settingsRepository.saveRelativePhone(phone)
+    }
+
+    fun clearRelativePhone() {
+        settingsRepository.clearRelativePhone()
+    }
+
+    fun openSettings() {
+        _uiState.value = UiState.Settings
     }
 
     fun resetToHome() {

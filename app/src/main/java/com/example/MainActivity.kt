@@ -18,6 +18,7 @@ import com.example.ui.screens.AnalyzingScreen
 import com.example.ui.screens.ErrorScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.ResultScreen
+import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.AnTamTheme
 import com.example.ui.viewmodel.MainViewModel
 import com.example.ui.viewmodel.UiState
@@ -52,14 +53,26 @@ fun MainAppContent(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val relativePhone by viewModel.relativePhone.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
 
     when (val state = uiState) {
         is UiState.Home -> {
             HomeScreen(
+                relativePhone = relativePhone,
+                onOpenSettings = { viewModel.openSettings() },
                 onAnalyzeText = { text -> viewModel.analyzeText(text) },
                 onAnalyzeImageUri = { uri -> viewModel.analyzeImageUri(context, uri) },
                 onAnalyzeImageBitmap = { bitmap -> viewModel.analyzeImageBitmap(bitmap) },
+                modifier = modifier
+            )
+        }
+        is UiState.Settings -> {
+            SettingsScreen(
+                currentPhone = relativePhone,
+                onSavePhone = { phone -> viewModel.saveRelativePhone(phone) },
+                onClearPhone = { viewModel.clearRelativePhone() },
+                onBack = { viewModel.resetToHome() },
                 modifier = modifier
             )
         }
@@ -72,6 +85,8 @@ fun MainAppContent(
         is UiState.Result -> {
             ResultScreen(
                 result = state.data,
+                relativePhone = relativePhone,
+                onOpenSettings = { viewModel.openSettings() },
                 onBackToHome = { viewModel.resetToHome() },
                 modifier = modifier
             )
