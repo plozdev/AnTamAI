@@ -2,44 +2,63 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Professional Polish Lavender Theme Colors
-val LavenderPrimary = Color(0xFFD0BCFF)
-val OnLavenderPrimary = Color(0xFF381E72)
-val LavenderPrimaryContainer = Color(0xFF4F378B)
-val OnLavenderContainer = Color(0xFFEADDFF)
+// Blue & Cyan Trust Theme Colors (Light Theme Primary)
+val OceanPrimary = Color(0xFF0284C7)             // Sky Blue / Ocean Cyan
+val OnOceanPrimary = Color(0xFFFFFFFF)
+val OceanPrimaryContainer = Color(0xFFE0F2FE)    // Soft sky blue
+val OnOceanPrimaryContainer = Color(0xFF0369A1)
 
-val LavenderSecondary = Color(0xFFCCC2DC)
-val OnLavenderSecondary = Color(0xFF332D41)
-val LavenderSecondaryContainer = Color(0xFF4A4458)
-val OnLavenderSecondaryContainer = Color(0xFFE8DEF8)
+val OceanSecondary = Color(0xFF0D9488)           // Teal / Turquoise
+val OnOceanSecondary = Color(0xFFFFFFFF)
+val OceanSecondaryContainer = Color(0xFFCCFBF1)  // Light teal container
+val OnOceanSecondaryContainer = Color(0xFF115E59)
 
-// Surface and Neutral backgrounds matching the Professional Polish HTML spec
-val DarkBackground = Color(0xFF1C1B1F)
-val DarkSurface = Color(0xFF2B2930)
-val DarkSurfaceVariant = Color(0xFF4A4458)
-val DarkSurfaceCard = Color(0xFF25232A)
-val DarkOutline = Color(0xFF49454F)
-val DarkOutlineVariant = Color(0xFF938F99)
+val OceanTertiary = Color(0xFF2563EB)            // Royal Blue Accent
+val OnOceanTertiary = Color(0xFFFFFFFF)
+val OceanTertiaryContainer = Color(0xFFDBEAFE)
+val OnOceanTertiaryContainer = Color(0xFF1E40AF)
 
-val TextHighContrast = Color(0xFFE6E1E5)
-val TextMediumContrast = Color(0xFFCAC4D0)
-val TextSubtle = Color(0xFF938F99)
+// Light Background & Surface
+val LightBackground = Color(0xFFF8FAFC)          // Clean crisp slate-50
+val LightSurface = Color(0xFFFFFFFF)             // White card surface
+val LightSurfaceVariant = Color(0xFFF1F5F9)      // Slate-100 container
+val LightSurfaceCard = Color(0xFFFFFFFF)
+val LightOutline = Color(0xFFE2E8F0)             // Slate-200 border
+val LightOutlineVariant = Color(0xFFCBD5E1)      // Slate-300 border
 
-// Status colors aligned with Material 3 Polish Dark
-val DangerRed = Color(0xFFF2B8B5)
-val DangerContainer = Color(0xFF601410)
-val OnDangerContainer = Color(0xFFF9DEDC)
+// Typography text colors for Light Theme
+val TextHighContrast = Color(0xFF0F172A)         // Slate-900
+val TextMediumContrast = Color(0xFF334155)       // Slate-700
+val TextSubtle = Color(0xFF64748B)               // Slate-500
 
-val WarningAmber = Color(0xFFFFDDAF)
-val WarningContainer = Color(0xFF4A2800)
-val OnWarningContainer = Color(0xFFFFECCC)
+// Status colors tailored for Light Theme
+val DangerRed = Color(0xFFDC2626)                // Red-600
+val DangerContainer = Color(0xFFFEF2F2)          // Red-50
+val OnDangerContainer = Color(0xFF991B1B)        // Red-800
+val DangerBorder = Color(0xFFFECACA)             // Red-200
 
-val SafeGreen = Color(0xFFA8E6CF)
-val SafeContainer = Color(0xFF054B33)
-val OnSafeContainer = Color(0xFFE8F5E9)
+val WarningAmber = Color(0xFFD97706)             // Amber-600
+val WarningContainer = Color(0xFFFFFBEB)         // Amber-50
+val OnWarningContainer = Color(0xFF92400E)       // Amber-800
+val WarningBorder = Color(0xFFFDE68A)            // Amber-200
+
+val SafeGreen = Color(0xFF16A34A)                // Green-600
+val SafeContainer = Color(0xFFF0FDF4)            // Green-50
+val OnSafeContainer = Color(0xFF166534)          // Green-800
+val SafeBorder = Color(0xFFBBF7D0)               // Green-200
 
 // Compatibility aliases
-val CyanPrimary = LavenderPrimary
-val CyanPrimaryContainer = LavenderPrimaryContainer
-val OnCyanPrimary = OnLavenderPrimary
-val OnCyanContainer = OnLavenderContainer
+val LavenderPrimary = OceanPrimary
+val OnLavenderPrimary = OnOceanPrimary
+val LavenderPrimaryContainer = OceanPrimaryContainer
+val OnLavenderContainer = OnOceanPrimaryContainer
+val LavenderSecondary = OceanSecondary
+val OnLavenderSecondary = OnOceanSecondary
+val LavenderSecondaryContainer = OceanSecondaryContainer
+val OnLavenderSecondaryContainer = OnOceanSecondaryContainer
+val DarkBackground = LightBackground
+val DarkSurface = LightSurface
+val DarkSurfaceVariant = LightSurfaceVariant
+val DarkSurfaceCard = LightSurfaceCard
+val DarkOutline = LightOutline
+val DarkOutlineVariant = LightOutlineVariant

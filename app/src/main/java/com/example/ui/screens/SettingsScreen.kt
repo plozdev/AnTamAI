@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -57,16 +56,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.DangerContainer
+import com.example.ui.theme.DangerBorder
 import com.example.ui.theme.DangerRed
-import com.example.ui.theme.DarkBackground
-import com.example.ui.theme.DarkOutline
-import com.example.ui.theme.DarkOutlineVariant
-import com.example.ui.theme.DarkSurface
-import com.example.ui.theme.DarkSurfaceVariant
-import com.example.ui.theme.LavenderPrimary
-import com.example.ui.theme.LavenderPrimaryContainer
-import com.example.ui.theme.OnLavenderPrimary
+import com.example.ui.theme.LightBackground
+import com.example.ui.theme.LightOutline
+import com.example.ui.theme.LightOutlineVariant
+import com.example.ui.theme.LightSurface
+import com.example.ui.theme.LightSurfaceVariant
+import com.example.ui.theme.OceanPrimary
+import com.example.ui.theme.OceanPrimaryContainer
+import com.example.ui.theme.OnOceanPrimary
+import com.example.ui.theme.SafeBorder
 import com.example.ui.theme.SafeContainer
 import com.example.ui.theme.SafeGreen
 import com.example.ui.theme.TextHighContrast
@@ -90,9 +90,9 @@ fun SettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(LightBackground)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
             .testTag("screen_settings"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -100,24 +100,25 @@ fun SettingsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp),
+                .padding(bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedButton(
                 onClick = onBack,
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.testTag("button_settings_back")
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Quay lại",
-                    tint = LavenderPrimary
+                    tint = OceanPrimary,
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Quay lại màn hình chính",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = LavenderPrimary
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
+                    color = OceanPrimary
                 )
             }
         }
@@ -126,39 +127,39 @@ fun SettingsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 6.dp, bottom = 16.dp),
+                .padding(top = 4.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(LavenderPrimaryContainer),
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(OceanPrimaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
-                    tint = LavenderPrimary,
-                    modifier = Modifier.size(30.dp)
+                    tint = OceanPrimary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
                     text = "Cài đặt số người thân",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontSize = 22.sp),
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
                     fontWeight = FontWeight.Bold,
                     color = TextHighContrast
                 )
                 Text(
                     text = "HỖ TRỢ XÁC MINH NHANH",
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
-                        letterSpacing = 1.2.sp,
+                        fontSize = 10.sp,
+                        letterSpacing = 1.sp,
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = LavenderPrimary
+                    color = OceanPrimary
                 )
             }
         }
@@ -166,52 +167,54 @@ fun SettingsScreen(
         // Explanation Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = CardDefaults.outlinedCardBorder().copy(width = 1.dp, brush = androidx.compose.ui.graphics.SolidColor(DarkOutline))
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = LightSurface),
+            border = CardDefaults.outlinedCardBorder().copy(width = 1.dp, brush = androidx.compose.ui.graphics.SolidColor(LightOutline)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Row(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(14.dp),
                 verticalAlignment = Alignment.Top
             ) {
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
-                    tint = LavenderPrimary,
+                    tint = OceanPrimary,
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(20.dp)
                         .padding(top = 2.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Bác hãy lưu số điện thoại của con cháu hoặc người thân tin cậy. Khi phát hiện tin nhắn lạ hoặc có dấu hiệu bất thường, ứng dụng sẽ hiện nút gọi ngay để bác xác minh nhanh chóng.",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 22.sp),
-                    color = TextHighContrast
+                    text = "Lưu số điện thoại của người thân tin cậy để khi phát hiện tin nhắn lạ hoặc có dấu hiệu bất thường, ứng dụng sẽ hiện nút gọi ngay để bạn xác minh nhanh chóng.",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 19.sp),
+                    color = TextMediumContrast
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         // Main Input Form Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = LightSurface),
             border = CardDefaults.outlinedCardBorder().copy(
-                width = 1.5.dp,
-                brush = androidx.compose.ui.graphics.SolidColor(DarkOutlineVariant.copy(alpha = 0.6f))
-            )
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(LightOutlineVariant)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Số điện thoại con cháu / người thân:",
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                    text = "Số điện thoại người thân:",
+                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
                     fontWeight = FontWeight.SemiBold,
                     color = TextHighContrast
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
                     value = phoneNumberInput,
@@ -226,14 +229,15 @@ fun SettingsScreen(
                         Text(
                             text = "Ví dụ: 0912345678",
                             color = TextSubtle,
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
                         )
                     },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Phone,
                             contentDescription = null,
-                            tint = LavenderPrimary
+                            tint = OceanPrimary,
+                            modifier = Modifier.size(20.dp)
                         )
                     },
                     trailingIcon = {
@@ -242,7 +246,8 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Default.Clear,
                                     contentDescription = "Xóa số",
-                                    tint = TextMediumContrast
+                                    tint = TextSubtle,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -261,23 +266,23 @@ fun SettingsScreen(
                             }
                         }
                     ),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = DarkSurfaceVariant.copy(alpha = 0.5f),
-                        unfocusedContainerColor = DarkSurfaceVariant.copy(alpha = 0.3f),
-                        focusedBorderColor = LavenderPrimary,
-                        unfocusedBorderColor = DarkOutline
+                        focusedContainerColor = LightSurfaceVariant,
+                        unfocusedContainerColor = LightSurfaceVariant,
+                        focusedBorderColor = OceanPrimary,
+                        unfocusedBorderColor = LightOutline
                     ),
-                    textStyle = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 18.sp,
+                    textStyle = MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = TextHighContrast
                     )
                 )
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Save Button (min height 56dp for senior accessibility)
+                // Save Button
                 Button(
                     onClick = {
                         keyboardController?.hide()
@@ -291,49 +296,50 @@ fun SettingsScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(48.dp)
                         .testTag("button_save_relative_phone"),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = LavenderPrimary,
-                        contentColor = OnLavenderPrimary
+                        containerColor = OceanPrimary,
+                        contentColor = OnOceanPrimary
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Save,
                         contentDescription = null,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Lưu số điện thoại này",
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
+                        text = "Lưu số điện thoại",
+                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
                         fontWeight = FontWeight.Bold
                     )
                 }
 
                 // Success Message Banner
                 if (saveSuccessMessage) {
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = SafeContainer)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = SafeContainer),
+                        border = CardDefaults.outlinedCardBorder().copy(width = 1.dp, brush = androidx.compose.ui.graphics.SolidColor(SafeBorder))
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
                                 tint = SafeGreen,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "Đã lưu số điện thoại thành công!",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
                                 fontWeight = FontWeight.Bold,
                                 color = SafeGreen
                             )
@@ -345,11 +351,11 @@ fun SettingsScreen(
 
         // Secondary Actions if phone is already set
         if (currentPhone.isNotBlank()) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Test Call Button
                 Button(
@@ -365,24 +371,24 @@ fun SettingsScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp)
+                        .height(48.dp)
                         .testTag("button_test_call_relative"),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = DarkSurfaceVariant,
+                        containerColor = LightSurfaceVariant,
                         contentColor = TextHighContrast
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Phone,
                         contentDescription = null,
-                        tint = LavenderPrimary,
-                        modifier = Modifier.size(20.dp)
+                        tint = OceanPrimary,
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Gọi thử số người thân ($currentPhone)",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -397,25 +403,25 @@ fun SettingsScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
+                        .height(46.dp)
                         .testTag("button_clear_relative_phone"),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
                     border = CardDefaults.outlinedCardBorder().copy(
                         width = 1.dp,
-                        brush = androidx.compose.ui.graphics.SolidColor(DangerRed.copy(alpha = 0.5f))
+                        brush = androidx.compose.ui.graphics.SolidColor(DangerBorder)
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(18.dp),
                         tint = DangerRed
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Xóa số người thân đã lưu",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                         fontWeight = FontWeight.SemiBold
                     )
                 }

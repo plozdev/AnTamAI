@@ -31,13 +31,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.DangerBorder
 import com.example.ui.theme.DangerContainer
 import com.example.ui.theme.DangerRed
-import com.example.ui.theme.DarkBackground
-import com.example.ui.theme.DarkOutline
-import com.example.ui.theme.LavenderPrimary
+import com.example.ui.theme.LightBackground
+import com.example.ui.theme.LightOutline
+import com.example.ui.theme.OceanPrimary
 import com.example.ui.theme.OnDangerContainer
-import com.example.ui.theme.OnLavenderPrimary
+import com.example.ui.theme.OnOceanPrimary
 import com.example.ui.theme.TextHighContrast
 
 @Composable
@@ -50,8 +51,8 @@ fun ErrorScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBackground)
-            .padding(24.dp)
+            .background(LightBackground)
+            .padding(20.dp)
             .testTag("screen_error"),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -60,76 +61,85 @@ fun ErrorScreen(
             imageVector = Icons.Default.ErrorOutline,
             contentDescription = "Lỗi",
             tint = DangerRed,
-            modifier = Modifier.size(68.dp)
+            modifier = Modifier.size(56.dp)
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "Chưa thể phân tích nội dung",
-            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 23.sp),
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp),
             fontWeight = FontWeight.Bold,
             color = TextHighContrast,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = DangerContainer),
             border = CardDefaults.outlinedCardBorder().copy(
                 width = 1.dp,
-                brush = androidx.compose.ui.graphics.SolidColor(DangerRed.copy(alpha = 0.5f))
+                brush = androidx.compose.ui.graphics.SolidColor(DangerBorder)
             )
         ) {
             Text(
                 text = errorMessage,
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp),
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 20.sp),
                 color = OnDangerContainer,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(14.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Button(
             onClick = onRetry,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
+                .height(48.dp)
                 .testTag("button_retry"),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = LavenderPrimary,
-                contentColor = OnLavenderPrimary
+                containerColor = OceanPrimary,
+                contentColor = OnOceanPrimary
             )
         ) {
-            Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
+            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Thử phân tích lại",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
                 fontWeight = FontWeight.Bold
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         OutlinedButton(
             onClick = onBackToHome,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(46.dp)
                 .testTag("button_error_back_home"),
-            shape = RoundedCornerShape(16.dp),
-            border = CardDefaults.outlinedCardBorder().copy(width = 1.dp, brush = androidx.compose.ui.graphics.SolidColor(DarkOutline))
+            shape = RoundedCornerShape(12.dp),
+            border = CardDefaults.outlinedCardBorder().copy(width = 1.dp, brush = androidx.compose.ui.graphics.SolidColor(LightOutline))
         ) {
-            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = LavenderPrimary)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Quay về màn hình chính", color = LavenderPrimary)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = null,
+                tint = OceanPrimary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "Quay về màn hình chính",
+                color = OceanPrimary,
+                style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp)
+            )
         }
     }
 }

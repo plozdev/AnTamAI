@@ -66,16 +66,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.DarkBackground
-import com.example.ui.theme.DarkOutline
-import com.example.ui.theme.DarkOutlineVariant
-import com.example.ui.theme.DarkSurface
-import com.example.ui.theme.DarkSurfaceVariant
-import com.example.ui.theme.LavenderPrimary
-import com.example.ui.theme.LavenderPrimaryContainer
-import com.example.ui.theme.LavenderSecondaryContainer
-import com.example.ui.theme.OnLavenderContainer
-import com.example.ui.theme.OnLavenderPrimary
+import com.example.ui.theme.LightBackground
+import com.example.ui.theme.LightOutline
+import com.example.ui.theme.LightOutlineVariant
+import com.example.ui.theme.LightSurface
+import com.example.ui.theme.LightSurfaceVariant
+import com.example.ui.theme.OceanPrimary
+import com.example.ui.theme.OceanPrimaryContainer
+import com.example.ui.theme.OnOceanPrimary
+import com.example.ui.theme.OnOceanPrimaryContainer
 import com.example.ui.theme.SafeContainer
 import com.example.ui.theme.SafeGreen
 import com.example.ui.theme.TextHighContrast
@@ -92,7 +91,6 @@ fun HomeScreen(
     onAnalyzeImageBitmap: (Bitmap) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -121,16 +119,16 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(LightBackground)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App Header with Settings Shortcut
+        // App Header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 12.dp)
+                .padding(top = 4.dp, bottom = 8.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -142,63 +140,72 @@ fun HomeScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(LavenderPrimary),
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(OceanPrimary),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Shield,
                             contentDescription = "Logo AnTâm.AI",
-                            tint = OnLavenderPrimary,
-                            modifier = Modifier.size(28.dp)
+                            tint = OnOceanPrimary,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(14.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
-                    Text(
-                        text = "AnTâm.AI",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Column {
+                        Text(
+                            text = "AnTâm.AI",
+                            style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = TextHighContrast
+                        )
+                        Text(
+                            text = "Nhận diện & phòng chống lừa đảo",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = TextSubtle
+                        )
+                    }
                 }
 
-                // Settings Button (touch target > 48dp)
+                // Settings Button
                 IconButton(
                     onClick = onOpenSettings,
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(DarkSurfaceVariant)
+                        .background(LightSurfaceVariant)
                         .testTag("button_open_settings")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Cài đặt số người thân",
-                        tint = LavenderPrimary,
-                        modifier = Modifier.size(24.dp)
+                        tint = OceanPrimary,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
 
+            Spacer(modifier = Modifier.height(4.dp))
+
             Text(
-                text = "Con chào bác, hôm nay bác cần con kiểm tra tin nhắn nào ạ?",
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 26.sp),
+                text = "Xin chào bạn, hôm nay bạn cần kiểm tra tin nhắn hay hình ảnh nào?",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 20.sp),
                 color = TextMediumContrast,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Normal
             )
 
             // Family phone indicator if configured
             if (relativePhone.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(SafeContainer.copy(alpha = 0.5f))
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(SafeContainer)
                         .clickable { onOpenSettings() }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -209,8 +216,8 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Đã lưu số người thân: $relativePhone",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = "Số người thân đã lưu: $relativePhone",
+                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
                         color = SafeGreen,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -218,117 +225,112 @@ fun HomeScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // HERO BUTTON 1: CHỤP ẢNH MÀN HÌNH (LAVENDER HERO CARD)
+        // HERO BUTTON 1: CHỤP ẢNH MÀN HÌNH (OCEAN PRIMARY HERO CARD)
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { showImageSourceSheet = true }
                 .testTag("button_take_screenshot"),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = LavenderPrimary),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = OceanPrimary),
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
         ) {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 24.dp, horizontal = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .padding(vertical = 18.dp, horizontal = 18.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(72.dp)
+                        .size(54.dp)
                         .clip(CircleShape)
-                        .background(OnLavenderPrimary),
+                        .background(Color.White.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
                         contentDescription = "Chụp ảnh màn hình",
-                        modifier = Modifier.size(36.dp),
-                        tint = LavenderPrimary
+                        modifier = Modifier.size(28.dp),
+                        tint = Color.White
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-                Text(
-                    text = "Chụp ảnh màn hình",
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 23.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = OnLavenderPrimary
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "MỞ CAMERA HOẶC THƯ VIỆN",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = 12.sp,
-                        letterSpacing = 1.5.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = LavenderPrimaryContainer
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Kiểm tra ảnh chụp màn hình",
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Biên lai, tin nhắn chat, hóa đơn, website",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // SECTION 2: DÁN TIN NHẮN CHỮ (PROFESSIONAL POLISH CARD WITH 2REM RADIUS)
+        // SECTION 2: DÁN TIN NHẮN CHỮ
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = LavenderSecondaryContainer),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = LightSurface),
             border = CardDefaults.outlinedCardBorder().copy(
-                width = 1.5.dp,
-                brush = androidx.compose.ui.graphics.SolidColor(DarkOutlineVariant.copy(alpha = 0.6f))
-            )
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(LightOutline)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(OnLavenderContainer),
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(OceanPrimaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ContentPaste,
                                 contentDescription = null,
-                                tint = OnLavenderPrimary,
-                                modifier = Modifier.size(24.dp)
+                                tint = OnOceanPrimaryContainer,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
                                 text = "Dán tin nhắn chữ",
-                                style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
+                                style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
                                 fontWeight = FontWeight.Bold,
-                                color = OnLavenderContainer
+                                color = TextHighContrast
                             )
                             Text(
-                                text = "SAO CHÉP VÀ DÁN VÀO ĐÂY",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    letterSpacing = 1.2.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                color = TextMediumContrast
+                                text = "Sao chép và dán vào ô bên dưới",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                color = TextSubtle
                             )
                         }
                     }
 
-                    // Quick Paste button
+                    // Quick Paste button (Prominent and clearly sized)
                     OutlinedButton(
                         onClick = {
                             val clipText = clipboardManager.getText()?.text
@@ -336,25 +338,26 @@ fun HomeScreen(
                                 messageText = clipText
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("button_paste_clipboard")
                     ) {
                         Icon(
                             imageVector = Icons.Default.ContentPaste,
                             contentDescription = "Dán",
-                            tint = LavenderPrimary,
-                            modifier = Modifier.size(16.dp)
+                            tint = OceanPrimary,
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Dán",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = LavenderPrimary
+                            style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
+                            color = OceanPrimary,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Input box
                 OutlinedTextField(
@@ -362,25 +365,25 @@ fun HomeScreen(
                     onValueChange = { messageText = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(140.dp)
+                        .height(120.dp)
                         .testTag("input_message_text"),
                     placeholder = {
                         Text(
-                            text = "Nhập hoặc dán nội dung tin nhắn, số điện thoại lạ, hoặc đường link cần kiểm tra vào đây...",
-                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                            text = "Nhập hoặc dán nội dung tin nhắn, số điện thoại lạ, hoặc đường link cần kiểm tra...",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                             color = TextSubtle
                         )
                     },
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 17.sp,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 14.sp,
                         color = TextHighContrast
                     ),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = DarkSurface,
-                        unfocusedContainerColor = DarkSurface,
-                        focusedBorderColor = LavenderPrimary,
-                        unfocusedBorderColor = DarkOutline
+                        focusedContainerColor = LightSurfaceVariant,
+                        unfocusedContainerColor = LightSurfaceVariant,
+                        focusedBorderColor = OceanPrimary,
+                        unfocusedBorderColor = LightOutline
                     ),
                     trailingIcon = {
                         if (messageText.isNotEmpty()) {
@@ -388,7 +391,8 @@ fun HomeScreen(
                                 Icon(
                                     imageVector = Icons.Default.Clear,
                                     contentDescription = "Xóa chữ",
-                                    tint = TextMediumContrast
+                                    tint = TextSubtle,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -402,7 +406,7 @@ fun HomeScreen(
                     })
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Submit Button
                 Button(
@@ -415,69 +419,72 @@ fun HomeScreen(
                     enabled = messageText.isNotBlank(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(48.dp)
                         .testTag("button_analyze_text"),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = LavenderPrimary,
-                        contentColor = OnLavenderPrimary,
-                        disabledContainerColor = DarkSurface,
+                        containerColor = OceanPrimary,
+                        contentColor = OnOceanPrimary,
+                        disabledContainerColor = LightSurfaceVariant,
                         disabledContentColor = TextSubtle
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Kiểm tra tin nhắn này ngay",
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
+                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         // TIP & REASSURANCE BANNER
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = CardDefaults.outlinedCardBorder().copy(width = 1.dp, brush = androidx.compose.ui.graphics.SolidColor(DarkOutline))
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = OceanPrimaryContainer.copy(alpha = 0.5f)),
+            border = CardDefaults.outlinedCardBorder().copy(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(OceanPrimary.copy(alpha = 0.2f))
+            )
         ) {
             Row(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.08f)),
+                        .background(OceanPrimaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
                         contentDescription = null,
-                        tint = LavenderPrimary,
-                        modifier = Modifier.size(24.dp)
+                        tint = OceanPrimary,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Bác đừng lo, con sẽ kiểm tra kỹ mọi đường link và hình ảnh giúp bác nhé.",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 22.sp),
+                    text = "Hệ thống sẽ kiểm tra kỹ mọi đường link và hình ảnh giúp bạn nhận diện dấu hiệu lừa đảo.",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 18.sp),
                     color = TextHighContrast,
                     fontWeight = FontWeight.Medium
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         // QUICK SAMPLE CARDS
         Column(
@@ -486,9 +493,9 @@ fun HomeScreen(
         ) {
             Text(
                 text = "Mẫu tin nhắn thử nghiệm phổ biến:",
-                style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp),
+                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
                 color = TextMediumContrast,
-                modifier = Modifier.padding(bottom = 10.dp, start = 4.dp)
+                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
             )
 
             SampleCard(
@@ -499,7 +506,7 @@ fun HomeScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             SampleCard(
                 title = "Giả mạo ngân hàng khóa thẻ",
@@ -509,7 +516,7 @@ fun HomeScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             SampleCard(
                 title = "Trúng thưởng nhận quà tri ân",
@@ -520,22 +527,22 @@ fun HomeScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         // FOOTER BRANDING
-        HorizontalDivider(color = DarkOutline.copy(alpha = 0.5f), thickness = 1.dp)
-        Spacer(modifier = Modifier.height(14.dp))
+        HorizontalDivider(color = LightOutline, thickness = 1.dp)
+        Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "CÔNG NGHỆ GEMINI VISION • VIỆT NAM",
+            text = "CÔNG NGHỆ GEMINI VISION • AN TOÀN VIỆT NAM",
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.sp,
-                letterSpacing = 1.5.sp,
+                fontSize = 10.sp,
+                letterSpacing = 1.2.sp,
                 fontWeight = FontWeight.Bold
             ),
-            color = TextSubtle.copy(alpha = 0.7f),
+            color = TextSubtle,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
     }
 
     // Modal Bottom Sheet for Image Selection (Camera vs Gallery)
@@ -543,22 +550,22 @@ fun HomeScreen(
         ModalBottomSheet(
             onDismissRequest = { showImageSourceSheet = false },
             sheetState = sheetState,
-            containerColor = DarkSurface
+            containerColor = LightSurface
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "Chọn cách gửi ảnh kiểm tra",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
                     fontWeight = FontWeight.Bold,
                     color = TextHighContrast
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Option 1: Pick from Gallery / Album
                 Button(
@@ -568,28 +575,28 @@ fun HomeScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp)
+                        .height(52.dp)
                         .testTag("button_pick_gallery"),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = LavenderPrimary,
-                        contentColor = OnLavenderPrimary
+                        containerColor = OceanPrimary,
+                        contentColor = OnOceanPrimary
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Default.PhotoLibrary,
                         contentDescription = null,
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(22.dp)
                     )
-                    Spacer(modifier = Modifier.width(14.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "Chọn ảnh chụp màn hình có sẵn",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp),
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Option 2: Take a photo
                 Button(
@@ -599,28 +606,29 @@ fun HomeScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp)
+                        .height(52.dp)
                         .testTag("button_open_camera"),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = DarkSurfaceVariant,
+                        containerColor = LightSurfaceVariant,
                         contentColor = TextHighContrast
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
                         contentDescription = null,
-                        modifier = Modifier.size(26.dp)
+                        tint = OceanPrimary,
+                        modifier = Modifier.size(22.dp)
                     )
-                    Spacer(modifier = Modifier.width(14.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "Chụp ảnh màn hình trực tiếp",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp),
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -636,24 +644,24 @@ private fun SampleCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = LightSurface),
         border = CardDefaults.outlinedCardBorder().copy(
             width = 1.dp,
-            brush = androidx.compose.ui.graphics.SolidColor(DarkOutline.copy(alpha = 0.7f))
+            brush = androidx.compose.ui.graphics.SolidColor(LightOutline)
         )
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
                 fontWeight = FontWeight.SemiBold,
-                color = LavenderPrimary
+                color = OceanPrimary
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = snippet,
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 17.sp),
                 color = TextMediumContrast,
                 maxLines = 2
             )
