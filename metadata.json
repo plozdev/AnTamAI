@@ -1,0 +1,6 @@
+{
+  "name": "AnTâm.AI",
+  "description": "Ứng dụng hỗ trợ người dân và người lớn tuổi nhận diện tin nhắn, hình ảnh và hóa đơn lừa đảo tại Việt Nam.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
