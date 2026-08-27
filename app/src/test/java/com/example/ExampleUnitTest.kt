@@ -4,13 +4,17 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.model.ScamAnalysisResult
 import com.example.data.model.ScamStatus
+import com.example.data.repository.ScamAnalysisRepository
 import com.example.data.repository.SettingsRepository
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -20,7 +24,7 @@ class ExampleUnitTest {
     fun testScamStatusParsing() {
         val dangerResult = ScamAnalysisResult(
             status = "DANGER",
-            openingMessage = "Bác bình tĩnh nhé, đây là tin nhắn lừa đảo!",
+            openingMessage = "Bạn bình tĩnh nhé, đây là tin nhắn lừa đảo!",
             signals = listOf("Link sai lệch", "Thúc ép thời gian"),
             recommendedActions = listOf("Không chuyển tiền", "Mở app ngân hàng kiểm tra"),
             officialHotline = "1900545413"
@@ -39,6 +43,14 @@ class ExampleUnitTest {
     }
 
     @Test
+    fun testDateInjectionInSystemPrompt() {
+        val resolvedPrompt = ScamAnalysisRepository.getResolvedSystemPrompt()
+        assertFalse(resolvedPrompt.contains("{CURRENT_DATE}"))
+        val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+        assertTrue(resolvedPrompt.contains("Hôm nay là ngày $todayStr"))
+    }
+
+    @Test
     fun testSettingsRepositorySaveAndClear() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val repo = SettingsRepository(context)
@@ -48,5 +60,11 @@ class ExampleUnitTest {
 
         repo.clearRelativePhone()
         assertEquals("", repo.getRelativePhone())
+
+        repo.setAutoReadResult(true)
+        assertTrue(repo.getAutoReadResult())
+
+        repo.setAutoReadResult(false)
+        assertFalse(repo.getAutoReadResult())
     }
 }

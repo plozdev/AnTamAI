@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
@@ -39,6 +41,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -76,8 +80,10 @@ import com.example.ui.theme.TextSubtle
 @Composable
 fun SettingsScreen(
     currentPhone: String,
+    autoReadResult: Boolean = false,
     onSavePhone: (String) -> Unit,
     onClearPhone: () -> Unit,
+    onToggleAutoRead: (Boolean) -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -91,6 +97,7 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(LightBackground)
+            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .testTag("screen_settings"),
@@ -127,7 +134,7 @@ fun SettingsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 4.dp, bottom = 12.dp),
+                .padding(top = 4.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -147,13 +154,13 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    text = "Cài đặt số người thân",
+                    text = "Cài đặt ứng dụng",
                     style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
                     fontWeight = FontWeight.Bold,
                     color = TextHighContrast
                 )
                 Text(
-                    text = "HỖ TRỢ XÁC MINH NHANH",
+                    text = "SỐ NGƯỜI THÂN & TÙY CHỌN HỖ TRỢ",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 10.sp,
                         letterSpacing = 1.sp,
@@ -163,6 +170,74 @@ fun SettingsScreen(
                 )
             }
         }
+
+        // Auto Read Voice Option Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = LightSurface),
+            border = CardDefaults.outlinedCardBorder().copy(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(LightOutlineVariant)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(OceanPrimaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                            contentDescription = null,
+                            tint = OceanPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Tự động đọc to kết quả",
+                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = TextHighContrast
+                        )
+                        Text(
+                            text = "Tự động phát giọng đọc giải thích khi có kết quả phân tích",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                            color = TextMediumContrast
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = autoReadResult,
+                    onCheckedChange = onToggleAutoRead,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = OnOceanPrimary,
+                        checkedTrackColor = OceanPrimary,
+                        uncheckedThumbColor = TextSubtle,
+                        uncheckedTrackColor = LightSurfaceVariant
+                    ),
+                    modifier = Modifier.testTag("switch_auto_read")
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
 
         // Explanation Card
         Card(

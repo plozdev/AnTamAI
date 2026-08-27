@@ -54,6 +54,7 @@ fun MainAppContent(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val relativePhone by viewModel.relativePhone.collectAsStateWithLifecycle()
+    val autoReadResult by viewModel.autoReadResult.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
 
     when (val state = uiState) {
@@ -70,8 +71,10 @@ fun MainAppContent(
         is UiState.Settings -> {
             SettingsScreen(
                 currentPhone = relativePhone,
+                autoReadResult = autoReadResult,
                 onSavePhone = { phone -> viewModel.saveRelativePhone(phone) },
                 onClearPhone = { viewModel.clearRelativePhone() },
+                onToggleAutoRead = { enabled -> viewModel.setAutoReadResult(enabled) },
                 onBack = { viewModel.resetToHome() },
                 modifier = modifier
             )
@@ -86,6 +89,10 @@ fun MainAppContent(
             ResultScreen(
                 result = state.data,
                 relativePhone = relativePhone,
+                autoReadResult = autoReadResult,
+                originalText = state.originalText,
+                originalImageBitmap = state.originalImageBitmap,
+                originalImageUri = state.originalImageUri,
                 onOpenSettings = { viewModel.openSettings() },
                 onBackToHome = { viewModel.resetToHome() },
                 modifier = modifier
