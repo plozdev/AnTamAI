@@ -133,7 +133,7 @@ fun ResultScreen(
     val ttsHelper = remember { TextToSpeechHelper(context) }
     val isSpeaking by ttsHelper.isSpeaking.collectAsStateWithLifecycle()
 
-    // Prepare speech text from opening_message and signals
+    // Prepare speech text from opening_message, signals, important_notes and recommended_actions
     val textToRead = remember(result) {
         buildString {
             if (result.openingMessage.isNotBlank()) {
@@ -144,6 +144,12 @@ fun ResultScreen(
                 append("Các dấu hiệu chính: ")
                 result.signals.forEachIndexed { i, sig ->
                     append("Dấu hiệu ${i + 1}: $sig. ")
+                }
+            }
+            if (result.importantNotes.isNotEmpty()) {
+                append("Lưu ý quan trọng: ")
+                result.importantNotes.forEach { note ->
+                    append("$note. ")
                 }
             }
             if (result.recommendedActions.isNotEmpty()) {
@@ -536,110 +542,307 @@ fun ResultScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // ==========================================
+        // LƯU Ý QUAN TRỌNG (IMPORTANT NOTES - DẠNG TEXT/BULLET, KHÔNG PHẢI NÚT)
+        // ==========================================
+        if (result.importantNotes.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_important_notes"),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = LightSurface),
+                border = CardDefaults.outlinedCardBorder().copy(
+                    width = 1.dp,
+                    brush = SolidColor(if (status == ScamStatus.DANGER) DangerBorder else if (status == ScamStatus.WARNING) WarningBorder else OceanPrimary.copy(alpha = 0.5f))
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = if (status == ScamStatus.DANGER) DangerRed else if (status == ScamStatus.WARNING) WarningAmber else OceanPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Lưu ý quan trọng:",
+                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = TextHighContrast
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    result.importantNotes.forEach { note ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Text(
+                                text = "• ",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                                fontWeight = FontWeight.Bold,
+                                color = if (status == ScamStatus.DANGER) DangerRed else if (status == ScamStatus.WARNING) WarningAmber else OceanPrimary
+                            )
+                            Text(
+                                text = note,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = 13.sp,
+                                    lineHeight = 19.sp
+                                ),
+                                color = TextHighContrast,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(14.dp))
         }
 
         // ==========================================
-        // VÙNG 3: HÀNH ĐỘNG (ACTIONS)
+        // VÙNG 3: HÀNH ĐỘNG KHUYẾN NGHỊ (RECOMMENDED ACTIONS RENDER THÀNH NÚT BẤM)
         // ==========================================
+        Text(
+            text = "Hành động đề xuất:",
+            style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
+            fontWeight = FontWeight.Bold,
+            color = TextHighContrast,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        )
 
-        // 3.1 CHỈ 1 NÚT HÀNH ĐỘNG CHÍNH DUY NHẤT, NỔI BẬT THEO MỨC ĐỘ
-        when (status) {
-            ScamStatus.DANGER -> {
-                Button(
-                    onClick = {
-                        Toast.makeText(context, "Đã ghi nhận: Không làm theo và xóa nội dung nguy hiểm!", Toast.LENGTH_LONG).show()
-                        onBackToHome()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .testTag("button_primary_action_danger"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = DangerRed,
-                        contentColor = Color.White
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteSweep,
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Không làm theo • Xóa tin nhắn ngay",
-                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.5.sp),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            ScamStatus.WARNING -> {
-                val warningActionLabel = if (result.recommendedActions.isNotEmpty()) {
-                    result.recommendedActions.first()
-                } else {
-                    "Tự mở app ngân hàng kiểm tra số dư"
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Nút hành động chính theo trạng thái:
+            when (status) {
+                ScamStatus.DANGER -> {
+                    // Nút xoá / dismiss cho luồng thủ công
+                    Button(
+                        onClick = {
+                            Toast.makeText(context, "Đã hiểu và xóa nội dung vừa nhập!", Toast.LENGTH_SHORT).show()
+                            onBackToHome()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("button_primary_action_danger"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = DangerRed,
+                            contentColor = Color.White
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteSweep,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Đã hiểu, xoá nội dung đã nhập",
+                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Render các recommended_actions bổ sung thành các nút bấm
+                    result.recommendedActions.forEach { action ->
+                        OutlinedButton(
+                            onClick = {
+                                Toast.makeText(context, "Khuyến nghị: $action", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = CardDefaults.outlinedCardBorder().copy(
+                                width = 1.dp,
+                                brush = SolidColor(DangerRed.copy(alpha = 0.5f))
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = null,
+                                tint = DangerRed,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = action,
+                                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                                fontWeight = FontWeight.SemiBold,
+                                color = DangerRed
+                            )
+                        }
+                    }
                 }
 
-                Button(
-                    onClick = {
-                        Toast.makeText(context, "Lưu ý: Luôn kiểm tra số dư thực tế trong app ngân hàng chính thức", Toast.LENGTH_LONG).show()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .testTag("button_primary_action_warning"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = OceanPrimary,
-                        contentColor = OnOceanPrimary
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountBalance,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (warningActionLabel.length > 35) warningActionLabel.take(35) + "..." else warningActionLabel,
-                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                        fontWeight = FontWeight.Bold
-                    )
+                ScamStatus.WARNING -> {
+                    // Render các recommended_actions ngắn gọn thành các nút bấm nổi bật
+                    if (result.recommendedActions.isNotEmpty()) {
+                        result.recommendedActions.forEachIndexed { index, action ->
+                            if (index == 0) {
+                                Button(
+                                    onClick = {
+                                        Toast.makeText(context, "Hành động: $action", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp)
+                                        .testTag("button_warning_action_$index"),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = OceanPrimary,
+                                        contentColor = OnOceanPrimary
+                                    ),
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountBalance,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = action,
+                                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            } else {
+                                OutlinedButton(
+                                    onClick = {
+                                        Toast.makeText(context, "Hành động: $action", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(46.dp)
+                                        .testTag("button_warning_action_$index"),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = CardDefaults.outlinedCardBorder().copy(
+                                        width = 1.dp,
+                                        brush = SolidColor(OceanPrimary)
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Security,
+                                        contentDescription = null,
+                                        tint = OceanPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = action,
+                                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = OceanPrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Nút dismiss/clear
+                    OutlinedButton(
+                        onClick = {
+                            Toast.makeText(context, "Đã hiểu và hoàn tất kiểm tra!", Toast.LENGTH_SHORT).show()
+                            onBackToHome()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .testTag("button_dismiss_warning"),
+                        shape = RoundedCornerShape(12.dp),
+                        border = CardDefaults.outlinedCardBorder().copy(
+                            width = 1.dp,
+                            brush = SolidColor(LightOutline)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = TextMediumContrast,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Đã hiểu, xoá nội dung đã nhập",
+                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextHighContrast
+                        )
+                    }
                 }
-            }
-            ScamStatus.SAFE, ScamStatus.UNKNOWN -> {
-                Button(
-                    onClick = onBackToHome,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag("button_primary_action_safe"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = OceanPrimary,
-                        contentColor = OnOceanPrimary
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Nội dung an toàn • Đã hiểu",
-                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.5.sp),
-                        fontWeight = FontWeight.Bold
-                    )
+
+                ScamStatus.SAFE, ScamStatus.UNKNOWN -> {
+                    Button(
+                        onClick = onBackToHome,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("button_primary_action_safe"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = OceanPrimary,
+                            contentColor = OnOceanPrimary
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Nội dung an toàn • Đã hiểu",
+                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    result.recommendedActions.forEach { action ->
+                        OutlinedButton(
+                            onClick = {
+                                Toast.makeText(context, action, Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = CardDefaults.outlinedCardBorder().copy(
+                                width = 1.dp,
+                                brush = SolidColor(OceanPrimary)
+                            )
+                        ) {
+                            Text(
+                                text = action,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                fontWeight = FontWeight.SemiBold,
+                                color = OceanPrimary
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // 3.2 HÀNH ĐỘNG PHỤ: GỌI TỔNG ĐÀI / GỌI NGƯỜI THÂN (Nhỏ gọn, Outlined)
         Column(
@@ -727,64 +930,11 @@ fun ResultScreen(
             }
         }
 
-        // Additional advisory checklist if multiple recommended actions exist
-        if (result.recommendedActions.size > 1) {
-            Spacer(modifier = Modifier.height(10.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = LightSurfaceVariant),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    width = 1.dp,
-                    brush = SolidColor(LightOutline)
-                )
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = "Các bước phòng ngừa cần nhớ:",
-                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = OceanPrimary
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    result.recommendedActions.forEachIndexed { idx, action ->
-                        val isChecked = checkedActions[idx] == true
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { checkedActions[idx] = !isChecked }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Icon(
-                                imageVector = if (isChecked) Icons.Default.CheckCircle else Icons.Default.Security,
-                                contentDescription = null,
-                                tint = if (isChecked) SafeGreen else OceanPrimary,
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .padding(top = 2.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = action,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 12.5.sp,
-                                    lineHeight = 17.sp
-                                ),
-                                color = TextHighContrast,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
         Spacer(modifier = Modifier.height(18.dp))
         HorizontalDivider(color = LightOutline, thickness = 1.dp)
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 3.3 CHỈ GIỮ 1 NÚT "KIỂM TRA NỘI DUNG KHÁC" Ở CUỐI TRANG
+        // 3.3 NÚT "KIỂM TRA NỘI DUNG KHÁC" Ở CUỐI TRANG
         Button(
             onClick = onBackToHome,
             modifier = Modifier

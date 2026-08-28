@@ -16,6 +16,7 @@ data class ScamAnalysisResult(
     @param:Json(name = "opening_message") val openingMessage: String = "",
     @param:Json(name = "signals") val signals: List<String> = emptyList(),
     @param:Json(name = "recommended_actions") val recommendedActions: List<String> = emptyList(),
+    @param:Json(name = "important_notes") val importantNotes: List<String> = emptyList(),
     @param:Json(name = "official_hotline") val officialHotline: String? = null,
     val rawJson: String = ""
 ) {

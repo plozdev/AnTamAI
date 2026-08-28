@@ -42,7 +42,7 @@ Trước tiên, xác định content type: nếu ảnh là hóa đơn/biên lai/
 - KHÔNG BAO GIỜ gán status = "SAFE" cho loại nội dung này, dù ảnh trông hoàn toàn bình thường và không có dấu hiệu chỉnh sửa. Một ảnh chụp màn hình KHÔNG BAO GIỜ là bằng chứng xác thực một giao dịch đã thực sự hoàn tất — kẻ lừa đảo tinh vi luôn tạo ảnh giả trông "sạch".
 - Nếu phát hiện dấu hiệu bất thường rõ ràng (font/logo sai lệch, số liệu bất thường, bố cục không tự nhiên): status = "DANGER".
 - Nếu KHÔNG phát hiện dấu hiệu bất thường: status = "WARNING" (không phải "SAFE"), với opening_message theo tinh thần: "Ảnh này không có dấu hiệu chỉnh sửa rõ ràng, nhưng ảnh chụp màn hình không thể xác nhận tiền đã thực sự vào tài khoản."
-- Trong MỌI trường hợp (dù DANGER hay WARNING), recommended_actions BẮT BUỘC phải luôn chứa 2 hành động sau, không được lược bỏ:
+- Trong MỌI trường hợp (dù DANGER hay WARNING), important_notes BẮT BUỘC phải luôn chứa 2 lưu ý sau, không được lược bỏ:
   1. "Mặc dù bức ảnh này trông hoàn toàn bình thường, bạn tuyệt đối chưa giao hàng hay chuyển tiền vội nhé ạ."
   2. "Nguyên tắc vàng: Bạn hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
 
@@ -50,12 +50,17 @@ NGUYÊN TẮC ƯU TIÊN CẢNH BÁO CAO HƠN — chỉ áp dụng khi đã có �
 
 Giới hạn: mảng "signals" tối đa 3 phần tử, chỉ liệt kê những dấu hiệu quan trọng nhất, không liệt kê hết mọi chi tiết nhỏ.
 
+Yêu cầu định dạng các trường:
+- "recommended_actions": mảng các hành động ngắn gọn, mệnh lệnh, tối đa ~6 từ mỗi mục, phù hợp làm label nút bấm (ví dụ: "Chưa giao hàng hay chuyển tiền", "Tự mở app kiểm tra số dư", "Xóa tin nhắn ngay", "Không bấm link lạ").
+- "important_notes": mảng các câu giải thích dài hoặc lưu ý quan trọng nếu cần.
+
 Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào khác ngoài JSON:
 {
   "status": "DANGER" | "WARNING" | "SAFE",
   "opening_message": "câu trấn an mở đầu",
   "signals": ["dấu hiệu 1", "dấu hiệu 2", "dấu hiệu 3 (tối đa)"],
-  "recommended_actions": ["hành động cụ thể 1", "hành động cụ thể 2"],
+  "recommended_actions": ["Hành động ngắn 1 (tối đa ~6 từ)", "Hành động ngắn 2"],
+  "important_notes": ["Câu giải thích dài nếu cần"],
   "official_hotline": "số hotline chính thức nếu nhận diện được thương hiệu bị giả mạo, hoặc null"
 }"""
 
@@ -63,23 +68,25 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
             val currentDateStr = try {
                 LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
             } catch (_: Exception) {
-                "27/08/2026"
+                "28/08/2026"
             }
             return SYSTEM_PROMPT_TEMPLATE.replace("{CURRENT_DATE}", currentDateStr)
         }
     }
 
-    suspend fun analyzeText(text: String): Result<ScamAnalysisResult> = withContext(Dispatchers.IO) {
-        try {
-            val apiKey = BuildConfig.GEMINI_API_KEY
-            if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
-                return@withContext Result.failure(
-                    IllegalStateException("Chưa cấu hình GEMINI_API_KEY trong hệ thống.")
-                )
-            }
+    suspend fun analyzeText(
+        text: String,
+        onStatusUpdate: ((String) -> Unit)? = null
+    ): Result<ScamAnalysisResult> = withContext(Dispatchers.IO) {
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
+            return@withContext Result.failure(
+                IllegalStateException("Chưa cấu hình GEMINI_API_KEY trong hệ thống.")
+            )
+        }
 
+        executeWithRetry(onStatusUpdate) {
             val systemPrompt = getResolvedSystemPrompt()
-
             val request = GeminiRequest(
                 systemInstruction = GeminiContent(
                     parts = listOf(GeminiPart(text = systemPrompt))
@@ -98,26 +105,24 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
 
             val response = ApiClient.geminiService.generateContent(apiKey, request)
             parseGeminiResponse(response)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 
     suspend fun analyzeImage(
         base64Data: String,
         mimeType: String = "image/jpeg",
-        noteText: String? = null
+        noteText: String? = null,
+        onStatusUpdate: ((String) -> Unit)? = null
     ): Result<ScamAnalysisResult> = withContext(Dispatchers.IO) {
-        try {
-            val apiKey = BuildConfig.GEMINI_API_KEY
-            if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
-                return@withContext Result.failure(
-                    IllegalStateException("Chưa cấu hình GEMINI_API_KEY trong hệ thống.")
-                )
-            }
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
+            return@withContext Result.failure(
+                IllegalStateException("Chưa cấu hình GEMINI_API_KEY trong hệ thống.")
+            )
+        }
 
+        executeWithRetry(onStatusUpdate) {
             val systemPrompt = getResolvedSystemPrompt()
-
             val parts = mutableListOf<GeminiPart>()
             val promptText = if (!noteText.isNullOrBlank()) {
                 "Hãy kiểm tra bức ảnh này (kèm ghi chú: \"$noteText\") để nhận diện dấu hiệu lừa đảo hoặc biên lai giả."
@@ -149,9 +154,49 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
 
             val response = ApiClient.geminiService.generateContent(apiKey, request)
             parseGeminiResponse(response)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
+    }
+
+    private suspend fun executeWithRetry(
+        onStatusUpdate: ((String) -> Unit)?,
+        action: suspend () -> Result<ScamAnalysisResult>
+    ): Result<ScamAnalysisResult> {
+        var lastError: Throwable? = null
+
+        for (attempt in 1..2) {
+            try {
+                val result = action()
+                if (result.isSuccess) {
+                    return result
+                }
+                lastError = result.exceptionOrNull()
+            } catch (e: Exception) {
+                lastError = e
+            }
+
+            // If this was the first attempt, prepare for retry 1 time
+            if (attempt == 1) {
+                val is429 = isHttp429(lastError)
+                if (is429) {
+                    onStatusUpdate?.invoke("Hệ thống đang quá tải, đang thử lại...")
+                    kotlinx.coroutines.delay(1500)
+                } else {
+                    onStatusUpdate?.invoke("Đang thử lại phân tích...")
+                    kotlinx.coroutines.delay(800)
+                }
+            }
+        }
+
+        // Both attempts failed, create clear user-friendly fallback
+        val userFriendlyMessage = "Chưa thể phân tích sâu lúc này, vui lòng cẩn trọng và thử lại sau ít phút."
+        return Result.failure(Exception(userFriendlyMessage, lastError))
+    }
+
+    private fun isHttp429(throwable: Throwable?): Boolean {
+        if (throwable == null) return false
+        if (throwable is retrofit2.HttpException && throwable.code() == 429) return true
+        val msg = throwable.message?.lowercase() ?: ""
+        return msg.contains("429") || msg.contains("quota") || msg.contains("resource_exhausted")
     }
 
     private fun parseGeminiResponse(response: com.example.data.model.GeminiResponse): Result<ScamAnalysisResult> {
