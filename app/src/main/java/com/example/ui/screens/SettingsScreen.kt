@@ -104,31 +104,31 @@ fun SettingsScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Back Button Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedButton(
-                onClick = onBack,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.testTag("button_settings_back")
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Quay lại",
-                    tint = OceanPrimary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Quay lại màn hình chính",
-                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
-                    color = OceanPrimary
-                )
-            }
-        }
+        // Row(
+        //     modifier = Modifier
+        //         .fillMaxWidth()
+        //         .padding(bottom = 10.dp),
+        //     verticalAlignment = Alignment.CenterVertically
+        // ) {
+        //     OutlinedButton(
+        //         onClick = onBack,
+        //         shape = RoundedCornerShape(12.dp),
+        //         modifier = Modifier.testTag("button_settings_back")
+        //     ) {
+        //         Icon(
+        //             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+        //             contentDescription = "Quay lại",
+        //             tint = OceanPrimary,
+        //             modifier = Modifier.size(18.dp)
+        //         )
+        //         Spacer(modifier = Modifier.width(6.dp))
+        //         Text(
+        //             text = "Quay lại màn hình chính",
+        //             style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
+        //             color = OceanPrimary
+        //         )
+        //     }
+        // }
 
         // Title Header
         Row(

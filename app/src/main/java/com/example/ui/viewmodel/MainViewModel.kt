@@ -18,8 +18,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 enum class AppTab {
-    MESSAGES, // TAB 1 - "Tin nhắn"
-    CHECK,    // TAB 2 - "Kiểm tra" (Default)
+    MESSAGES, // TAB 1 - "Tin nhắn" (Default Main Tab)
+    CHECK,    // TAB 2 - "Kiểm tra"
     SETTINGS  // TAB 3 - "Cài đặt"
 }
 
@@ -47,7 +47,7 @@ class MainViewModel(
     private val _uiState = MutableStateFlow<UiState>(UiState.Home)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
-    private val _currentTab = MutableStateFlow(AppTab.CHECK)
+    private val _currentTab = MutableStateFlow(AppTab.MESSAGES)
     val currentTab: StateFlow<AppTab> = _currentTab.asStateFlow()
 
     private val _smsMessages = MutableStateFlow<List<SmsMessage>>(emptyList())

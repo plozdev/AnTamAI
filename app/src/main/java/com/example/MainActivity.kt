@@ -81,12 +81,12 @@ fun MainAppContent(
     val smsError by viewModel.smsError.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Ensure back press on Result, Settings, Analyzing or Error returns to Home (Check tab)
-    BackHandler(enabled = uiState !is UiState.Home || currentTab != AppTab.CHECK) {
+    // Ensure back press on Result, Settings, Analyzing or Error returns to Home (Messages tab)
+    BackHandler(enabled = uiState !is UiState.Home || currentTab != AppTab.MESSAGES) {
         if (uiState !is UiState.Home) {
             viewModel.resetToHome()
-        } else if (currentTab != AppTab.CHECK) {
-            viewModel.selectTab(AppTab.CHECK)
+        } else if (currentTab != AppTab.MESSAGES) {
+            viewModel.selectTab(AppTab.MESSAGES)
         }
     }
 
@@ -219,7 +219,7 @@ fun MainAppContent(
                                 onSavePhone = { phone -> viewModel.saveRelativePhone(phone) },
                                 onClearPhone = { viewModel.clearRelativePhone() },
                                 onToggleAutoRead = { enabled -> viewModel.setAutoReadResult(enabled) },
-                                onBack = { viewModel.selectTab(AppTab.CHECK) },
+                                onBack = { viewModel.selectTab(AppTab.MESSAGES) },
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
