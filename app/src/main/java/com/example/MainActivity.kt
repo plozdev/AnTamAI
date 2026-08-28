@@ -232,6 +232,8 @@ fun MainAppContent(
                                 autoScanEnabled = autoScanSms,
                                 onRefresh = { viewModel.loadSmsMessages() },
                                 onOpenSmsItem = { entity -> viewModel.openSmsEntity(entity) },
+                                onDismissSms = { id -> viewModel.dismissSms(id) },
+                                onDismissAllSuspicious = { viewModel.dismissAllSuspicious() },
                                 onOpenHistoryItem = { item -> viewModel.openHistoryItem(item) },
                                 onDeleteHistoryItem = { id -> viewModel.deleteHistoryItem(id) },
                                 onClearAllHistory = { viewModel.clearAllHistory() },

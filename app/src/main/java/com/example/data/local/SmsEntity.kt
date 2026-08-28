@@ -15,5 +15,6 @@ data class SmsEntity(
     val heuristicSignals: String = "", // Delimited by "|||"
     val status: String = "SAFE", // "ANALYZING", "SAFE", "WARNING", "DANGER"
     val openingMessage: String = "",
-    val resultJson: String = ""
+    val resultJson: String = "",
+    val isDismissed: Boolean = false
 )

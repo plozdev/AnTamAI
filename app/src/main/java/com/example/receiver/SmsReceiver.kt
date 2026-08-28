@@ -68,6 +68,11 @@ class SmsReceiver : BroadcastReceiver() {
 
                 val workRequest = OneTimeWorkRequestBuilder<SmsAnalysisWorker>()
                     .setInputData(inputData)
+                    .setBackoffCriteria(
+                        androidx.work.BackoffPolicy.EXPONENTIAL,
+                        30,
+                        java.util.concurrent.TimeUnit.SECONDS
+                    )
                     .build()
 
                 WorkManager.getInstance(context.applicationContext).enqueue(workRequest)

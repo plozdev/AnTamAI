@@ -104,16 +104,29 @@ class SmsAnalysisWorker(
                 Result.success()
             },
             onFailure = { _ ->
-                // If Gemini call fails, mark as WARNING with clear notice
-                if (recordId > 0) {
-                    smsDao.updateAnalysisResult(
-                        id = recordId,
-                        status = "WARNING",
-                        openingMessage = "Tin nhắn có từ khóa nghi ngờ. Chưa thể kết nối máy chủ phân tích sâu, vui lòng cẩn trọng không bấm link hay chuyển tiền!",
-                        resultJson = ""
-                    )
+                // If Gemini call fails, check retry count (up to 3 retries)
+                if (runAttemptCount < 3) {
+                    if (recordId > 0) {
+                        smsDao.updateAnalysisResult(
+                            id = recordId,
+                            status = "RETRYING",
+                            openingMessage = "Đang chờ phân tích lại...",
+                            resultJson = ""
+                        )
+                    }
+                    Result.retry()
+                } else {
+                    // Exceeded max retries: mark as WARNING with clear notice
+                    if (recordId > 0) {
+                        smsDao.updateAnalysisResult(
+                            id = recordId,
+                            status = "WARNING",
+                            openingMessage = "Tin nhắn có từ khóa nghi ngờ. Chưa thể kết nối máy chủ phân tích sâu, vui lòng cẩn trọng không bấm link hay chuyển tiền!",
+                            resultJson = ""
+                        )
+                    }
+                    Result.success()
                 }
-                Result.success()
             }
         )
     }

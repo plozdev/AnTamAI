@@ -34,6 +34,12 @@ interface SmsDao {
     @Query("UPDATE sms_entities SET status = :status, openingMessage = :openingMessage, resultJson = :resultJson WHERE id = :id")
     suspend fun updateAnalysisResult(id: Long, status: String, openingMessage: String, resultJson: String)
 
+    @Query("UPDATE sms_entities SET isDismissed = :isDismissed WHERE id = :id")
+    suspend fun setDismissed(id: Long, isDismissed: Boolean)
+
+    @Query("UPDATE sms_entities SET isDismissed = 1 WHERE (status = 'DANGER' OR status = 'WARNING' OR status = 'ANALYZING' OR status = 'RETRYING' OR heuristicNeedsScrutiny = 1) AND isDismissed = 0")
+    suspend fun dismissAllSuspicious()
+
     @Query("DELETE FROM sms_entities WHERE id = :id")
     suspend fun deleteById(id: Long)
 

@@ -11,6 +11,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +39,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
@@ -148,6 +151,8 @@ fun SmsInboxScreen(
     autoScanEnabled: Boolean = true,
     onRefresh: () -> Unit,
     onOpenSmsItem: (SmsEntity) -> Unit = {},
+    onDismissSms: (Long) -> Unit = {},
+    onDismissAllSuspicious: () -> Unit = {},
     onOpenHistoryItem: (CheckHistoryEntity) -> Unit = {},
     onDeleteHistoryItem: (Long) -> Unit = {},
     onClearAllHistory: () -> Unit = {},
@@ -197,9 +202,9 @@ fun SmsInboxScreen(
         }
     }
 
-    // Convert fallbackMessages to entities if room entities are currently empty
+    // Convert fallbackMessages to entities if room entities are currently empty, sorted strictly by timestamp DESC
     val displayedEntities = remember(smsEntities, fallbackMessages) {
-        if (smsEntities.isNotEmpty()) {
+        val raw = if (smsEntities.isNotEmpty()) {
             smsEntities
         } else {
             fallbackMessages.map { msg ->
@@ -213,9 +218,23 @@ fun SmsInboxScreen(
                     heuristicSignals = msg.heuristicResult.matchedSignals.joinToString("|||"),
                     status = if (msg.heuristicResult.needsScrutiny) "WARNING" else "SAFE",
                     openingMessage = if (msg.heuristicResult.needsScrutiny) "Tin nhắn có từ khóa cần chú ý" else "Tin nhắn bình thường",
-                    resultJson = ""
+                    resultJson = "",
+                    isDismissed = false
                 )
             }
+        }
+        raw.sortedByDescending { it.timestamp }
+    }
+
+    val unDismissedSuspiciousCount = remember(displayedEntities) {
+        displayedEntities.count { entity ->
+            !entity.isDismissed && (
+                entity.status == "DANGER" ||
+                entity.status == "WARNING" ||
+                entity.status == "ANALYZING" ||
+                entity.status == "RETRYING" ||
+                entity.heuristicNeedsScrutiny
+            )
         }
     }
 
@@ -224,30 +243,15 @@ fun SmsInboxScreen(
             val matchSearch = searchQuery.isBlank() ||
                 entity.address.contains(searchQuery, ignoreCase = true) ||
                 entity.body.contains(searchQuery, ignoreCase = true)
-            val isSuspiciousOrDanger = entity.heuristicNeedsScrutiny ||
+            val isSuspicious = !entity.isDismissed && (
                 entity.status == "DANGER" ||
                 entity.status == "WARNING" ||
-                entity.status == "ANALYZING"
-            val matchFilter = !filterOnlySuspicious || isSuspiciousOrDanger
+                entity.status == "ANALYZING" ||
+                entity.status == "RETRYING" ||
+                entity.heuristicNeedsScrutiny
+            )
+            val matchFilter = !filterOnlySuspicious || isSuspicious
             matchSearch && matchFilter
-        }
-    }
-
-    val suspiciousOrDangerCount = remember(displayedEntities) {
-        displayedEntities.count {
-            it.status == "DANGER" || it.status == "WARNING" || it.heuristicNeedsScrutiny
-        }
-    }
-
-    val suspiciousList = remember(filteredEntities) {
-        filteredEntities.filter {
-            it.status == "DANGER" || it.status == "WARNING" || it.status == "ANALYZING" || it.heuristicNeedsScrutiny
-        }
-    }
-
-    val normalList = remember(filteredEntities) {
-        filteredEntities.filter {
-            it.status == "SAFE" && !it.heuristicNeedsScrutiny
         }
     }
 
@@ -559,12 +563,11 @@ fun SmsInboxScreen(
                 )
 
                 // PROMINENT WARNING BANNER IF SUSPICIOUS SMS EXIST
-                if (suspiciousOrDangerCount > 0) {
+                if (unDismissedSuspiciousCount > 0) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .clickable { filterOnlySuspicious = !filterOnlySuspicious }
                             .testTag("banner_suspicious_sms_warning"),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(
@@ -584,7 +587,9 @@ fun SmsInboxScreen(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { filterOnlySuspicious = !filterOnlySuspicious }
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Warning,
@@ -595,7 +600,7 @@ fun SmsInboxScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = "⚠️ $suspiciousOrDangerCount tin nhắn cần chú ý",
+                                        text = "⚠️ $unDismissedSuspiciousCount tin nhắn cần chú ý",
                                         style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
                                         fontWeight = FontWeight.Bold,
                                         color = OnWarningContainer
@@ -607,12 +612,37 @@ fun SmsInboxScreen(
                                     )
                                 }
                             }
-                            Icon(
-                                imageVector = if (filterOnlySuspicious) Icons.Default.Close else Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = OnWarningContainer,
-                                modifier = Modifier.size(18.dp)
-                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // Action: Mark all as dismissed
+                            OutlinedButton(
+                                onClick = onDismissAllSuspicious,
+                                modifier = Modifier
+                                    .height(32.dp)
+                                    .testTag("button_dismiss_all_suspicious"),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.6f)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = OnWarningContainer
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DoneAll,
+                                    contentDescription = "Đã xem tất cả",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = OnWarningContainer
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Đã xem tất cả",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
                         }
                     }
                 }
@@ -684,50 +714,44 @@ fun SmsInboxScreen(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Section 1: Cần chú ý / Nguy hiểm / Đang phân tích
-                        if (suspiciousList.isNotEmpty()) {
-                            item(key = "header_suspicious") {
-                                Text(
-                                    text = "CẦN CHÚ Ý & CẢNH BÁO (${suspiciousList.size})",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.5.sp
-                                    ),
-                                    color = DangerRed,
-                                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                                )
-                            }
-
-                            items(suspiciousList, key = { "suspicious_${it.id}_${it.timestamp}" }) { entity ->
-                                SmsEntityCard(
-                                    entity = entity,
-                                    onClick = { selectedSmsForDetail = entity }
-                                )
+                        if (filterOnlySuspicious) {
+                            item(key = "filter_header") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "ĐANG LỌC: CẦN CHÚ Ý (${filteredEntities.size})",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.5.sp
+                                        ),
+                                        color = DangerRed
+                                    )
+                                    TextButton(
+                                        onClick = { filterOnlySuspicious = false },
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                    ) {
+                                        Text(
+                                            text = "Hiện tất cả",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                            color = OceanPrimary
+                                        )
+                                    }
+                                }
                             }
                         }
 
-                        // Section 2: Bình thường
-                        if (!filterOnlySuspicious && normalList.isNotEmpty()) {
-                            item(key = "header_normal") {
-                                Text(
-                                    text = "BÌNH THƯỜNG (${normalList.size})",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.5.sp
-                                    ),
-                                    color = OceanPrimary,
-                                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                                )
-                            }
-
-                            items(normalList, key = { "normal_${it.id}_${it.timestamp}" }) { entity ->
-                                SmsEntityCard(
-                                    entity = entity,
-                                    onClick = { selectedSmsForDetail = entity }
-                                )
-                            }
+                        items(filteredEntities, key = { "sms_${it.id}_${it.timestamp}" }) { entity ->
+                            SmsEntityCard(
+                                entity = entity,
+                                onClick = { selectedSmsForDetail = entity },
+                                onDismiss = { onDismissSms(entity.id) }
+                            )
                         }
                     }
                 }
@@ -842,6 +866,9 @@ fun SmsInboxScreen(
         SmsEntityDetailDialog(
             entity = entity,
             onDismiss = { selectedSmsForDetail = null },
+            onDismissAlert = {
+                onDismissSms(entity.id)
+            },
             onViewFullResult = {
                 selectedSmsForDetail = null
                 onOpenSmsItem(entity)
@@ -929,15 +956,19 @@ fun SmsInboxScreen(
 @Composable
 private fun SmsEntityCard(
     entity: SmsEntity,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDismiss: () -> Unit = {}
 ) {
     val statusUpper = entity.status.uppercase()
     val isAnalyzing = statusUpper == "ANALYZING"
+    val isRetrying = statusUpper == "RETRYING"
     val isDanger = statusUpper == "DANGER"
     val isWarning = statusUpper == "WARNING" || entity.heuristicNeedsScrutiny
+    val isSuspicious = isDanger || isWarning || isAnalyzing || isRetrying
 
     val (badgeText, badgeColor, badgeBg) = when {
         isAnalyzing -> Triple("Đang phân tích...", OceanPrimary, OceanPrimaryContainer)
+        isRetrying -> Triple("Đang chờ phân tích lại...", WarningAmber, WarningContainer)
         isDanger -> Triple("Nguy hiểm", DangerRed, DangerContainer)
         isWarning -> Triple("Cần chú ý", WarningAmber, WarningContainer)
         else -> Triple("Bình thường", SafeGreen, SafeContainer)
@@ -955,11 +986,11 @@ private fun SmsEntityCard(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = LightSurface),
         border = CardDefaults.outlinedCardBorder().copy(
-            width = if (isDanger || isWarning) 1.2.dp else 1.dp,
+            width = if (isDanger || isWarning || isRetrying) 1.2.dp else 1.dp,
             brush = SolidColor(
                 when {
                     isDanger -> DangerBorder
-                    isWarning -> WarningBorder
+                    isWarning || isRetrying -> WarningBorder
                     else -> LightOutlineVariant
                 }
             )
@@ -980,7 +1011,7 @@ private fun SmsEntityCard(
                     .background(
                         when {
                             isDanger -> DangerContainer
-                            isWarning -> WarningContainer
+                            isWarning || isRetrying -> WarningContainer
                             isAnalyzing -> OceanPrimaryContainer
                             else -> LightSurfaceVariant
                         }
@@ -989,6 +1020,13 @@ private fun SmsEntityCard(
             ) {
                 if (isAnalyzing) {
                     AnalyzingPulseIndicator()
+                } else if (isRetrying) {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = "Đang chờ phân tích lại",
+                        tint = WarningAmber,
+                        modifier = Modifier.size(22.dp)
+                    )
                 } else if (isDanger) {
                     Icon(
                         imageVector = Icons.Default.Warning,
@@ -1054,24 +1092,90 @@ private fun SmsEntityCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Status Badge
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (isAnalyzing) {
-                        AnalyzingBadge()
-                    } else {
-                        Box(
+                // Status Badge & Dismiss Button
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (isAnalyzing) {
+                            AnalyzingBadge()
+                        } else if (isRetrying) {
+                            RetryingBadge()
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(badgeBg)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = badgeText,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = badgeColor
+                                )
+                            }
+                        }
+
+                        if (entity.isDismissed) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(LightSurfaceVariant)
+                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DoneAll,
+                                    contentDescription = "Đã xem",
+                                    tint = TextMediumContrast,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "Đã xem",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = TextMediumContrast
+                                )
+                            }
+                        }
+                    }
+
+                    // 1-Tap Dismiss button for un-dismissed suspicious items
+                    if (!entity.isDismissed && isSuspicious) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 1.dp),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(badgeBg)
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .height(24.dp)
+                                .testTag("button_dismiss_sms_${entity.id}"),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = TextMediumContrast
+                            ),
+                            border = BorderStroke(0.8.dp, LightOutlineVariant)
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.Done,
+                                contentDescription = "Bỏ qua",
+                                modifier = Modifier.size(11.dp),
+                                tint = TextMediumContrast
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = badgeText,
+                                text = "Bỏ qua",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = badgeColor
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
                             )
                         }
                     }
@@ -1085,6 +1189,34 @@ private fun SmsEntityCard(
                 contentDescription = null,
                 tint = TextSubtle,
                 modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun RetryingBadge() {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(WarningContainer)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.AccessTime,
+                contentDescription = null,
+                tint = WarningAmber,
+                modifier = Modifier.size(11.dp)
+            )
+            Spacer(modifier = Modifier.width(3.dp))
+            Text(
+                text = "Đang chờ phân tích lại...",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = WarningAmber
             )
         }
     }
@@ -1161,12 +1293,14 @@ private fun AnalyzingBadge() {
 private fun SmsEntityDetailDialog(
     entity: SmsEntity,
     onDismiss: () -> Unit,
+    onDismissAlert: () -> Unit = {},
     onViewFullResult: () -> Unit
 ) {
     val statusUpper = entity.status.uppercase()
     val isDanger = statusUpper == "DANGER"
     val isWarning = statusUpper == "WARNING" || entity.heuristicNeedsScrutiny
     val isAnalyzing = statusUpper == "ANALYZING"
+    val isRetrying = statusUpper == "RETRYING"
 
     val formattedDate = remember(entity.timestamp) {
         val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
@@ -1385,6 +1519,36 @@ private fun SmsEntityDetailDialog(
                                 text = "Xem phân tích chi tiết & hướng dẫn",
                                 style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
                                 fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    if (!entity.isDismissed && (isDanger || isWarning || entity.heuristicNeedsScrutiny || isRetrying)) {
+                        OutlinedButton(
+                            onClick = {
+                                onDismissAlert()
+                                onDismiss()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .testTag("dialog_button_dismiss_sms_${entity.id}"),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = TextMediumContrast
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DoneAll,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = TextMediumContrast
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Đánh dấu đã xem / Bỏ qua cảnh báo",
+                                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }

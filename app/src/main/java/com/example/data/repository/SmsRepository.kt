@@ -123,6 +123,11 @@ class SmsRepository(private val context: Context) {
 
                         val workRequest = OneTimeWorkRequestBuilder<SmsAnalysisWorker>()
                             .setInputData(inputData)
+                            .setBackoffCriteria(
+                                androidx.work.BackoffPolicy.EXPONENTIAL,
+                                30,
+                                java.util.concurrent.TimeUnit.SECONDS
+                            )
                             .build()
 
                         WorkManager.getInstance(context.applicationContext).enqueue(workRequest)
@@ -136,6 +141,14 @@ class SmsRepository(private val context: Context) {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    suspend fun setDismissed(id: Long, isDismissed: Boolean) = withContext(Dispatchers.IO) {
+        smsDao.setDismissed(id, isDismissed)
+    }
+
+    suspend fun dismissAllSuspicious() = withContext(Dispatchers.IO) {
+        smsDao.dismissAllSuspicious()
     }
 
     suspend fun getInboxMessages(limit: Int = 120): Result<List<SmsMessage>> = withContext(Dispatchers.IO) {

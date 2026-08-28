@@ -114,6 +114,18 @@ class MainViewModel(
         }
     }
 
+    fun dismissSms(id: Long, isDismissed: Boolean = true) {
+        viewModelScope.launch {
+            smsRepository.setDismissed(id, isDismissed)
+        }
+    }
+
+    fun dismissAllSuspicious() {
+        viewModelScope.launch {
+            smsRepository.dismissAllSuspicious()
+        }
+    }
+
     fun openSmsEntity(entity: SmsEntity) {
         val parsedResult = try {
             if (entity.resultJson.isNotBlank()) {

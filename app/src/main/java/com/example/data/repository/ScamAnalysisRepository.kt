@@ -9,6 +9,8 @@ import com.example.data.model.GeminiRequest
 import com.example.data.model.ScamAnalysisResult
 import com.example.data.remote.ApiClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -16,6 +18,9 @@ import java.time.format.DateTimeFormatter
 class ScamAnalysisRepository {
 
     companion object {
+        // Global rate limiter: maximum 2 concurrent Gemini API requests across entire app
+        val geminiRateLimiter = Semaphore(2)
+
         const val SYSTEM_PROMPT_TEMPLATE = """Bạn là chuyên gia an ninh mạng tại Việt Nam, chuyên hỗ trợ người dân (đặc biệt người lớn tuổi, ít rành công nghệ) nhận diện tin nhắn/hình ảnh lừa đảo.
 
 BỐI CẢNH THỜI GIAN (quan trọng):
@@ -172,14 +177,14 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
     private suspend fun executeWithRetry(
         onStatusUpdate: ((String) -> Unit)?,
         action: suspend () -> Result<ScamAnalysisResult>
-    ): Result<ScamAnalysisResult> {
+    ): Result<ScamAnalysisResult> = geminiRateLimiter.withPermit {
         var lastError: Throwable? = null
 
         for (attempt in 1..2) {
             try {
                 val result = action()
                 if (result.isSuccess) {
-                    return result
+                    return@withPermit result
                 }
                 lastError = result.exceptionOrNull()
             } catch (e: Exception) {
@@ -201,7 +206,7 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
 
         // Both attempts failed, create clear user-friendly fallback
         val userFriendlyMessage = "Chưa thể phân tích sâu lúc này, vui lòng cẩn trọng và thử lại sau ít phút."
-        return Result.failure(Exception(userFriendlyMessage, lastError))
+        Result.failure(Exception(userFriendlyMessage, lastError))
     }
 
     private fun isHttp429(throwable: Throwable?): Boolean {
