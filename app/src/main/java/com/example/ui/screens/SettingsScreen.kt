@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -82,9 +83,11 @@ import com.example.ui.theme.TextSubtle
 fun SettingsScreen(
     currentPhone: String,
     autoReadResult: Boolean = false,
+    autoScanSms: Boolean = true,
     onSavePhone: (String) -> Unit,
     onClearPhone: () -> Unit,
     onToggleAutoRead: (Boolean) -> Unit = {},
+    onToggleAutoScan: (Boolean) -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -104,39 +107,80 @@ fun SettingsScreen(
             .testTag("screen_settings"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Back Button Row
-        // Row(
-        //     modifier = Modifier
-        //         .fillMaxWidth()
-        //         .padding(bottom = 10.dp),
-        //     verticalAlignment = Alignment.CenterVertically
-        // ) {
-        //     OutlinedButton(
-        //         onClick = onBack,
-        //         shape = RoundedCornerShape(12.dp),
-        //         modifier = Modifier.testTag("button_settings_back")
-        //     ) {
-        //         Icon(
-        //             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-        //             contentDescription = "Quay lại",
-        //             tint = OceanPrimary,
-        //             modifier = Modifier.size(18.dp)
-        //         )
-        //         Spacer(modifier = Modifier.width(6.dp))
-        //         Text(
-        //             text = "Quay lại màn hình chính",
-        //             style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
-        //             color = OceanPrimary
-        //         )
-        //     }
-        // }
-
         // Title Header
         AppTabHeader(
             icon = Icons.Default.Person,
             title = "Cài đặt ứng dụng",
             subtitle = "Số người thân & tùy chọn hỗ trợ"
         )
+
+        // Real-time SMS Auto Scan Toggle Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = LightSurface),
+            border = CardDefaults.outlinedCardBorder().copy(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(LightOutlineVariant)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(OceanPrimaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Security,
+                            contentDescription = null,
+                            tint = OceanPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Tự động quét SMS mới",
+                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = TextHighContrast
+                        )
+                        Text(
+                            text = "Tự động kiểm tra an toàn và gửi cảnh báo ngay khi có tin nhắn mới đến",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                            color = TextMediumContrast
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = autoScanSms,
+                    onCheckedChange = onToggleAutoScan,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = OnOceanPrimary,
+                        checkedTrackColor = OceanPrimary,
+                        uncheckedThumbColor = TextSubtle,
+                        uncheckedTrackColor = LightSurfaceVariant
+                    ),
+                    modifier = Modifier.testTag("switch_auto_scan_sms")
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
 
         // Auto Read Voice Option Card
         Card(

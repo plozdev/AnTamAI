@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
 import com.example.data.local.CheckHistoryEntity
+import com.example.data.local.SmsEntity
 import com.example.data.model.ScamAnalysisResult
 import com.example.data.model.SmsMessage
 import com.example.data.remote.ApiClient
@@ -58,6 +59,13 @@ class MainViewModel(
     private val _currentTab = MutableStateFlow(AppTab.MESSAGES)
     val currentTab: StateFlow<AppTab> = _currentTab.asStateFlow()
 
+    val smsEntities: StateFlow<List<SmsEntity>> = smsRepository.getAllSmsFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     private val _smsMessages = MutableStateFlow<List<SmsMessage>>(emptyList())
     val smsMessages: StateFlow<List<SmsMessage>> = _smsMessages.asStateFlow()
 
@@ -76,6 +84,7 @@ class MainViewModel(
 
     val relativePhone: StateFlow<String> = settingsRepository.relativePhone
     val autoReadResult: StateFlow<Boolean> = settingsRepository.autoReadResult
+    val autoScanSms: StateFlow<Boolean> = settingsRepository.autoScanSms
 
     private var lastAnalyzedAction: (() -> Unit)? = null
 
@@ -90,10 +99,11 @@ class MainViewModel(
         viewModelScope.launch {
             _isSmsLoading.value = true
             _smsError.value = null
-            val result = smsRepository.getInboxMessages()
-            result.fold(
-                onSuccess = { list ->
-                    _smsMessages.value = list
+            val syncResult = smsRepository.syncInboxMessages()
+            syncResult.fold(
+                onSuccess = {
+                    val messagesResult = smsRepository.getInboxMessages()
+                    messagesResult.onSuccess { _smsMessages.value = it }
                     _isSmsLoading.value = false
                 },
                 onFailure = { error ->
@@ -102,6 +112,52 @@ class MainViewModel(
                 }
             )
         }
+    }
+
+    fun openSmsEntity(entity: SmsEntity) {
+        val parsedResult = try {
+            if (entity.resultJson.isNotBlank()) {
+                val adapter = ApiClient.moshi.adapter(ScamAnalysisResult::class.java)
+                adapter.fromJson(entity.resultJson)
+            } else null
+        } catch (_: Exception) {
+            null
+        } ?: ScamAnalysisResult(
+            status = entity.status,
+            openingMessage = if (entity.openingMessage.isNotBlank()) entity.openingMessage else if (entity.status == "SAFE") "Tin nhắn an toàn" else "Tin nhắn đáng ngờ",
+            signals = if (entity.heuristicSignals.isNotBlank()) entity.heuristicSignals.split("|||") else emptyList(),
+            reminders = emptyList()
+        )
+
+        _uiState.value = UiState.Result(
+            data = parsedResult,
+            originalText = entity.body
+        )
+    }
+
+    fun showResultFromNotification(
+        originalText: String?,
+        resultJson: String?,
+        sender: String?
+    ) {
+        val parsedResult = try {
+            if (!resultJson.isNullOrBlank()) {
+                val adapter = ApiClient.moshi.adapter(ScamAnalysisResult::class.java)
+                adapter.fromJson(resultJson)
+            } else null
+        } catch (_: Exception) {
+            null
+        } ?: ScamAnalysisResult(
+            status = "DANGER",
+            openingMessage = "Phát hiện tin nhắn có dấu hiệu bất thường từ $sender",
+            signals = emptyList(),
+            reminders = emptyList()
+        )
+
+        _uiState.value = UiState.Result(
+            data = parsedResult,
+            originalText = originalText
+        )
     }
 
     fun analyzeText(text: String) {
@@ -254,6 +310,10 @@ class MainViewModel(
 
     fun setAutoReadResult(enabled: Boolean) {
         settingsRepository.setAutoReadResult(enabled)
+    }
+
+    fun setAutoScanSms(enabled: Boolean) {
+        settingsRepository.setAutoScanSms(enabled)
     }
 
     fun openSettings() {

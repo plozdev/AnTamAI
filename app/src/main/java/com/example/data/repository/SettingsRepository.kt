@@ -16,6 +16,9 @@ class SettingsRepository(context: Context) {
     private val _autoReadResult = MutableStateFlow(getAutoReadResult())
     val autoReadResult: StateFlow<Boolean> = _autoReadResult.asStateFlow()
 
+    private val _autoScanSms = MutableStateFlow(getAutoScanSms())
+    val autoScanSms: StateFlow<Boolean> = _autoScanSms.asStateFlow()
+
     fun getRelativePhone(): String {
         return prefs.getString(KEY_RELATIVE_PHONE, "") ?: ""
     }
@@ -40,9 +43,19 @@ class SettingsRepository(context: Context) {
         _autoReadResult.value = enabled
     }
 
+    fun getAutoScanSms(): Boolean {
+        return prefs.getBoolean(KEY_AUTO_SCAN_SMS, true)
+    }
+
+    fun setAutoScanSms(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_AUTO_SCAN_SMS, enabled).apply()
+        _autoScanSms.value = enabled
+    }
+
     companion object {
         private const val PREFS_NAME = "antam_ai_settings_prefs"
         private const val KEY_RELATIVE_PHONE = "relative_phone_number"
         private const val KEY_AUTO_READ_RESULT = "auto_read_result"
+        private const val KEY_AUTO_SCAN_SMS = "auto_scan_sms"
     }
 }

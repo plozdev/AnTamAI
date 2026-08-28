@@ -1,5 +1,6 @@
 package com.example
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -56,13 +57,38 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
+    companion object {
+        const val EXTRA_OPEN_SMS_ID = "com.example.EXTRA_OPEN_SMS_ID"
+        const val EXTRA_SENDER = "com.example.EXTRA_SENDER"
+        const val EXTRA_ORIGINAL_TEXT = "com.example.EXTRA_ORIGINAL_TEXT"
+        const val EXTRA_RESULT_JSON = "com.example.EXTRA_RESULT_JSON"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleIntent(intent)
         setContent {
             AnTamTheme {
                 MainAppContent(viewModel = viewModel)
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent == null) return
+        val originalText = intent.getStringExtra(EXTRA_ORIGINAL_TEXT)
+        val resultJson = intent.getStringExtra(EXTRA_RESULT_JSON)
+        val sender = intent.getStringExtra(EXTRA_SENDER)
+
+        if (!originalText.isNullOrBlank() || !resultJson.isNullOrBlank()) {
+            viewModel.showResultFromNotification(originalText, resultJson, sender)
         }
     }
 }
@@ -76,6 +102,8 @@ fun MainAppContent(
     val currentTab by viewModel.currentTab.collectAsStateWithLifecycle()
     val relativePhone by viewModel.relativePhone.collectAsStateWithLifecycle()
     val autoReadResult by viewModel.autoReadResult.collectAsStateWithLifecycle()
+    val autoScanSms by viewModel.autoScanSms.collectAsStateWithLifecycle()
+    val smsEntities by viewModel.smsEntities.collectAsStateWithLifecycle()
     val smsMessages by viewModel.smsMessages.collectAsStateWithLifecycle()
     val isSmsLoading by viewModel.isSmsLoading.collectAsStateWithLifecycle()
     val smsError by viewModel.smsError.collectAsStateWithLifecycle()
@@ -134,7 +162,7 @@ fun MainAppContent(
                             modifier = Modifier.testTag("tab_messages")
                         )
 
-                        // TAB 2: Kiểm tra (Mặc định)
+                        // TAB 2: Kiểm tra
                         NavigationBarItem(
                             selected = currentTab == AppTab.CHECK,
                             onClick = { viewModel.selectTab(AppTab.CHECK) },
@@ -196,14 +224,18 @@ fun MainAppContent(
                     when (currentTab) {
                         AppTab.MESSAGES -> {
                             SmsInboxScreen(
-                                messages = smsMessages,
+                                smsEntities = smsEntities,
+                                fallbackMessages = smsMessages,
                                 isLoading = isSmsLoading,
                                 errorMessage = smsError,
                                 checkHistory = checkHistory,
+                                autoScanEnabled = autoScanSms,
                                 onRefresh = { viewModel.loadSmsMessages() },
+                                onOpenSmsItem = { entity -> viewModel.openSmsEntity(entity) },
                                 onOpenHistoryItem = { item -> viewModel.openHistoryItem(item) },
                                 onDeleteHistoryItem = { id -> viewModel.deleteHistoryItem(id) },
                                 onClearAllHistory = { viewModel.clearAllHistory() },
+                                onOpenSettings = { viewModel.selectTab(AppTab.SETTINGS) },
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -221,9 +253,11 @@ fun MainAppContent(
                             SettingsScreen(
                                 currentPhone = relativePhone,
                                 autoReadResult = autoReadResult,
+                                autoScanSms = autoScanSms,
                                 onSavePhone = { phone -> viewModel.saveRelativePhone(phone) },
                                 onClearPhone = { viewModel.clearRelativePhone() },
                                 onToggleAutoRead = { enabled -> viewModel.setAutoReadResult(enabled) },
+                                onToggleAutoScan = { enabled -> viewModel.setAutoScanSms(enabled) },
                                 onBack = { viewModel.selectTab(AppTab.MESSAGES) },
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -236,9 +270,11 @@ fun MainAppContent(
             SettingsScreen(
                 currentPhone = relativePhone,
                 autoReadResult = autoReadResult,
+                autoScanSms = autoScanSms,
                 onSavePhone = { phone -> viewModel.saveRelativePhone(phone) },
                 onClearPhone = { viewModel.clearRelativePhone() },
                 onToggleAutoRead = { enabled -> viewModel.setAutoReadResult(enabled) },
+                onToggleAutoScan = { enabled -> viewModel.setAutoScanSms(enabled) },
                 onBack = { viewModel.resetToHome() },
                 modifier = modifier
             )
