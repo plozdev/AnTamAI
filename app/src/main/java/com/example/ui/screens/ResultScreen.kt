@@ -27,15 +27,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
@@ -55,7 +55,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,7 +68,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -82,7 +80,6 @@ import com.example.ui.theme.DangerContainer
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.LightBackground
 import com.example.ui.theme.LightOutline
-import com.example.ui.theme.LightOutlineVariant
 import com.example.ui.theme.LightSurface
 import com.example.ui.theme.LightSurfaceVariant
 import com.example.ui.theme.OceanPrimary
@@ -124,7 +121,9 @@ fun ResultScreen(
         Log.d("AnTamAI", "Status: ${result.status}")
         Log.d("AnTamAI", "Opening: ${result.openingMessage}")
         Log.d("AnTamAI", "Signals: ${result.signals}")
-        Log.d("AnTamAI", "Actions: ${result.recommendedActions}")
+        Log.d("AnTamAI", "Reminders: ${result.reminders}")
+        Log.d("AnTamAI", "Action: ${result.action}")
+        Log.d("AnTamAI", "Important Notes: ${result.importantNotes}")
         Log.d("AnTamAI", "Hotline: ${result.officialHotline}")
         Log.d("AnTamAI", "Raw JSON: ${result.rawJson}")
     }
@@ -133,7 +132,7 @@ fun ResultScreen(
     val ttsHelper = remember { TextToSpeechHelper(context) }
     val isSpeaking by ttsHelper.isSpeaking.collectAsStateWithLifecycle()
 
-    // Prepare speech text from opening_message, signals, important_notes and recommended_actions
+    // Prepare speech text from opening_message, signals, reminders, important_notes
     val textToRead = remember(result) {
         buildString {
             if (result.openingMessage.isNotBlank()) {
@@ -146,16 +145,16 @@ fun ResultScreen(
                     append("Dấu hiệu ${i + 1}: $sig. ")
                 }
             }
+            if (result.reminders.isNotEmpty()) {
+                append("Lời nhắc an toàn: ")
+                result.reminders.forEach { reminder ->
+                    append("$reminder. ")
+                }
+            }
             if (result.importantNotes.isNotEmpty()) {
                 append("Lưu ý quan trọng: ")
                 result.importantNotes.forEach { note ->
                     append("$note. ")
-                }
-            }
-            if (result.recommendedActions.isNotEmpty()) {
-                append("Khuyến nghị: ")
-                result.recommendedActions.forEach { act ->
-                    append("$act. ")
                 }
             }
         }
@@ -174,12 +173,10 @@ fun ResultScreen(
         }
     }
 
-    val checkedActions = remember { mutableStateMapOf<Int, Boolean>() }
-
-    // Status Banner 1 dòng theo yêu cầu:
-    // DANGER = "LỪA ĐẢO" (Đỏ, icon X/Dangerous)
+    // Status visuals mapping:
+    // DANGER = "LỪA ĐẢO" (Đỏ, icon Cancel)
     // WARNING = "CẦN THẬN TRỌNG" (Vàng/Cam, icon Warning)
-    // SAFE = "AN TOÀN" (Xanh lá, icon Check)
+    // SAFE = "AN TOÀN" (Xanh lá, icon CheckCircle)
     val status = result.scamStatus
     val (statusLabel, statusIcon, statusColor, statusBgColor, statusBorderColor, statusTextColor) = when (status) {
         ScamStatus.DANGER -> StatusVisuals(
@@ -208,6 +205,12 @@ fun ResultScreen(
         )
     }
 
+    // Resolved phone action if available (either from action object or official_hotline)
+    val resolvedActionPhone = result.action?.phone?.takeIf { it.isNotBlank() }
+        ?: result.officialHotline?.takeIf { it.isNotBlank() }
+    val resolvedActionLabel = result.action?.label?.takeIf { it.isNotBlank() }
+        ?: if (!resolvedActionPhone.isNullOrBlank()) "Gọi tổng đài chính thức" else null
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -228,13 +231,16 @@ fun ResultScreen(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { onBackToHome() }
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onBackToHome() }
+                    .padding(vertical = 4.dp, horizontal = 2.dp)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Quay lại",
                     tint = OceanPrimary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
@@ -262,137 +268,114 @@ fun ResultScreen(
             }
         }
 
-        // ==========================================
-        // VÙNG 1: NHẬN DIỆN NHANH (QUICK IDENTIFICATION)
-        // ==========================================
-
-        // 1.1 Preview thu nhỏ nội dung người dùng đã gửi
-        if (originalText != null || originalImageBitmap != null || originalImageUri != null) {
+        // ORIGINAL CONTENT SNIPPET / IMAGE PREVIEW
+        if (!originalText.isNullOrBlank()) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 10.dp)
-                    .testTag("card_input_preview"),
+                    .padding(bottom = 10.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = LightSurface),
+                colors = CardDefaults.cardColors(containerColor = LightSurfaceVariant),
+                border = CardDefaults.outlinedCardBorder().copy(
+                    width = 1.dp,
+                    brush = SolidColor(LightOutline)
+                )
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "Nội dung vừa kiểm tra:",
+                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp),
+                        color = TextSubtle,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = originalText,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
+                        color = TextMediumContrast,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        } else if (originalImageBitmap != null || originalImageUri != null) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = LightSurfaceVariant),
                 border = CardDefaults.outlinedCardBorder().copy(
                     width = 1.dp,
                     brush = SolidColor(LightOutline)
                 )
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
+                    modifier = Modifier.padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (originalImageBitmap != null) {
                         Image(
                             bitmap = originalImageBitmap.asImageBitmap(),
-                            contentDescription = "Ảnh đã phân tích",
+                            contentDescription = "Ảnh đã kiểm tra",
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(50.dp)
                                 .clip(RoundedCornerShape(8.dp)),
                             contentScale = ContentScale.Crop
                         )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Ảnh chụp màn hình vừa kiểm tra",
-                                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
-                                fontWeight = FontWeight.Bold,
-                                color = TextHighContrast
-                            )
-                            Text(
-                                text = "Đã quét và phân tích bằng Gemini Vision",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                color = TextSubtle
-                            )
-                        }
                     } else if (originalImageUri != null) {
                         AsyncImage(
                             model = originalImageUri,
-                            contentDescription = "Ảnh đã phân tích",
+                            contentDescription = "Ảnh đã kiểm tra",
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(50.dp)
                                 .clip(RoundedCornerShape(8.dp)),
                             contentScale = ContentScale.Crop
                         )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Ảnh chụp màn hình vừa kiểm tra",
-                                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
-                                fontWeight = FontWeight.Bold,
-                                color = TextHighContrast
-                            )
-                            Text(
-                                text = "Đã quét và phân tích bằng Gemini Vision",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                color = TextSubtle
-                            )
-                        }
-                    } else if (!originalText.isNullOrBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(OceanPrimaryContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = null,
-                                tint = OceanPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Nội dung vừa kiểm tra:",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextSubtle
-                            )
-                            Text(
-                                text = "\"$originalText\"",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                                color = TextHighContrast,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Ảnh chụp / Hóa đơn đã kiểm tra",
+                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = TextHighContrast
+                        )
+                        Text(
+                            text = "Đã quét và phân tích chi tiết",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                            color = TextSubtle
+                        )
                     }
                 }
             }
         }
 
-        // 1.2 Banner trạng thái NGẮN GỌN 1 dòng
+        // ==========================================
+        // VÙNG 1: STATUS BANNER 1 DÒNG
+        // ==========================================
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("banner_status"),
-            shape = RoundedCornerShape(16.dp),
+                .testTag("banner_status_result"),
+            shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = statusBgColor),
             border = CardDefaults.outlinedCardBorder().copy(
                 width = 1.5.dp,
                 brush = SolidColor(statusBorderColor)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            )
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(38.dp)
                         .clip(CircleShape)
-                        .background(statusColor.copy(alpha = 0.2f)),
+                        .background(Color.White.copy(alpha = 0.85f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -417,7 +400,7 @@ fun ResultScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 1.3 Gộp opening_message làm đoạn trấn an DUY NHẤT ngay dưới banner
+        // OPENING MESSAGE TRẤN AN
         if (result.openingMessage.isNotBlank()) {
             Card(
                 modifier = Modifier
@@ -447,7 +430,7 @@ fun ResultScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 1.4 Nút "🔊 Đọc to" giữ vị trí dễ thấy
+        // READ ALOUD TTS BUTTON
         Button(
             onClick = {
                 if (isSpeaking) {
@@ -487,7 +470,7 @@ fun ResultScreen(
         Spacer(modifier = Modifier.height(14.dp))
 
         // ==========================================
-        // VÙNG 2: LÝ DO (SIGNALS - TỐI ĐA 3 MỤC)
+        // VÙNG 2: SIGNALS (DẤU HIỆU NHẬN BIẾT - TỐI ĐA 3 MỤC)
         // ==========================================
         if (result.signals.isNotEmpty()) {
             Card(
@@ -546,7 +529,112 @@ fun ResultScreen(
         }
 
         // ==========================================
-        // LƯU Ý QUAN TRỌNG (IMPORTANT NOTES - DẠNG TEXT/BULLET, KHÔNG PHẢI NÚT)
+        // VÙNG 3: REMINDERS (DANH SÁCH LỜI NHẮC TĨNH VỚI ICON, KHÔNG PHẢI NÚT)
+        // ==========================================
+        val effectiveReminders = if (result.reminders.isNotEmpty()) {
+            result.reminders.take(4)
+        } else {
+            // Fallback default reminders based on status if empty
+            when (status) {
+                ScamStatus.DANGER -> listOf(
+                    "Tuyệt đối không chuyển tiền theo yêu cầu",
+                    "Không cung cấp mật khẩu, mã OTP hoặc thông tin thẻ",
+                    "Không bấm vào bất kỳ đường link lạ nào trong tin nhắn",
+                    "Xóa tin nhắn hoặc chặn người gửi nếu bị làm phiền"
+                )
+                ScamStatus.WARNING -> listOf(
+                    "Chưa vội giao dịch hay chuyển tiền",
+                    "Tự mở app ngân hàng chính thức để kiểm tra số dư thực tế",
+                    "Không cung cấp thông tin cá nhân cho người lạ"
+                )
+                ScamStatus.SAFE, ScamStatus.UNKNOWN -> listOf(
+                    "Nội dung chưa thấy dấu hiệu lừa đảo nguy hiểm",
+                    "Luôn giữ cảnh giác khi được yêu cầu cung cấp thông tin tài chính"
+                )
+            }
+        }
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("card_reminders_list"),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (status == ScamStatus.DANGER) DangerContainer.copy(alpha = 0.35f)
+                else if (status == ScamStatus.WARNING) WarningContainer.copy(alpha = 0.35f)
+                else SafeContainer.copy(alpha = 0.35f)
+            ),
+            border = CardDefaults.outlinedCardBorder().copy(
+                width = 1.dp,
+                brush = SolidColor(if (status == ScamStatus.DANGER) DangerBorder else if (status == ScamStatus.WARNING) WarningBorder else SafeBorder)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (status == ScamStatus.DANGER) Icons.Default.Block else Icons.Default.Security,
+                        contentDescription = null,
+                        tint = if (status == ScamStatus.DANGER) DangerRed else if (status == ScamStatus.WARNING) WarningAmber else SafeGreen,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Lời nhắc an toàn quan trọng:",
+                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = TextHighContrast
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                effectiveReminders.forEach { reminder ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (status == ScamStatus.DANGER) DangerRed.copy(alpha = 0.15f)
+                                    else if (status == ScamStatus.WARNING) WarningAmber.copy(alpha = 0.15f)
+                                    else SafeGreen.copy(alpha = 0.15f)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (status == ScamStatus.DANGER) Icons.Default.Block else Icons.Default.Check,
+                                contentDescription = null,
+                                tint = if (status == ScamStatus.DANGER) DangerRed else if (status == ScamStatus.WARNING) WarningAmber else SafeGreen,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = reminder,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 13.5.sp,
+                                lineHeight = 19.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = TextHighContrast,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ==========================================
+        // LƯU Ý QUAN TRỌNG (IMPORTANT NOTES)
         // ==========================================
         if (result.importantNotes.isNotEmpty()) {
             Card(
@@ -611,330 +699,102 @@ fun ResultScreen(
         }
 
         // ==========================================
-        // VÙNG 3: HÀNH ĐỘNG KHUYẾN NGHỊ (RECOMMENDED ACTIONS RENDER THÀNH NÚT BẤM)
+        // VÙNG 4: ACTION CHÍNH (1 NÚT TO NỔI BẬT DUY NHẤT KHI CÓ PHONE)
         // ==========================================
-        Text(
-            text = "Hành động đề xuất:",
-            style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
-            fontWeight = FontWeight.Bold,
-            color = TextHighContrast,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-        )
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            // Nút hành động chính theo trạng thái:
-            when (status) {
-                ScamStatus.DANGER -> {
-                    // Nút xoá / dismiss cho luồng thủ công
-                    Button(
-                        onClick = {
-                            Toast.makeText(context, "Đã hiểu và xóa nội dung vừa nhập!", Toast.LENGTH_SHORT).show()
-                            onBackToHome()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .testTag("button_primary_action_danger"),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = DangerRed,
-                            contentColor = Color.White
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteSweep,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Đã hiểu, xoá nội dung đã nhập",
-                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Render các recommended_actions bổ sung thành các nút bấm
-                    result.recommendedActions.forEach { action ->
-                        OutlinedButton(
-                            onClick = {
-                                Toast.makeText(context, "Khuyến nghị: $action", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            border = CardDefaults.outlinedCardBorder().copy(
-                                width = 1.dp,
-                                brush = SolidColor(DangerRed.copy(alpha = 0.5f))
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Security,
-                                contentDescription = null,
-                                tint = DangerRed,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = action,
-                                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                                fontWeight = FontWeight.SemiBold,
-                                color = DangerRed
-                            )
-                        }
-                    }
-                }
-
-                ScamStatus.WARNING -> {
-                    // Render các recommended_actions ngắn gọn thành các nút bấm nổi bật
-                    if (result.recommendedActions.isNotEmpty()) {
-                        result.recommendedActions.forEachIndexed { index, action ->
-                            if (index == 0) {
-                                Button(
-                                    onClick = {
-                                        Toast.makeText(context, "Hành động: $action", Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp)
-                                        .testTag("button_warning_action_$index"),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = OceanPrimary,
-                                        contentColor = OnOceanPrimary
-                                    ),
-                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AccountBalance,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = action,
-                                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            } else {
-                                OutlinedButton(
-                                    onClick = {
-                                        Toast.makeText(context, "Hành động: $action", Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(46.dp)
-                                        .testTag("button_warning_action_$index"),
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = CardDefaults.outlinedCardBorder().copy(
-                                        width = 1.dp,
-                                        brush = SolidColor(OceanPrimary)
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Security,
-                                        contentDescription = null,
-                                        tint = OceanPrimary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = action,
-                                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = OceanPrimary
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Nút dismiss/clear
-                    OutlinedButton(
-                        onClick = {
-                            Toast.makeText(context, "Đã hiểu và hoàn tất kiểm tra!", Toast.LENGTH_SHORT).show()
-                            onBackToHome()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(46.dp)
-                            .testTag("button_dismiss_warning"),
-                        shape = RoundedCornerShape(12.dp),
-                        border = CardDefaults.outlinedCardBorder().copy(
-                            width = 1.dp,
-                            brush = SolidColor(LightOutline)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = TextMediumContrast,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Đã hiểu, xoá nội dung đã nhập",
-                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextHighContrast
-                        )
-                    }
-                }
-
-                ScamStatus.SAFE, ScamStatus.UNKNOWN -> {
-                    Button(
-                        onClick = onBackToHome,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("button_primary_action_safe"),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = OceanPrimary,
-                            contentColor = OnOceanPrimary
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Nội dung an toàn • Đã hiểu",
-                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    result.recommendedActions.forEach { action ->
-                        OutlinedButton(
-                            onClick = {
-                                Toast.makeText(context, action, Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            border = CardDefaults.outlinedCardBorder().copy(
-                                width = 1.dp,
-                                brush = SolidColor(OceanPrimary)
-                            )
-                        ) {
-                            Text(
-                                text = action,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                fontWeight = FontWeight.SemiBold,
-                                color = OceanPrimary
-                            )
-                        }
-                    }
-                }
+        if (!resolvedActionPhone.isNullOrBlank()) {
+            val fullActionLabel = if (resolvedActionLabel != null) {
+                "$resolvedActionLabel: $resolvedActionPhone"
+            } else {
+                "Gọi tổng đài: $resolvedActionPhone"
             }
+
+            Button(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                        data = Uri.parse("tel:$resolvedActionPhone")
+                    }
+                    try {
+                        context.startActivity(intent)
+                    } catch (_: Exception) {
+                        clipboardManager.setText(AnnotatedString(resolvedActionPhone))
+                        Toast.makeText(context, "Đã sao chép số: $resolvedActionPhone", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("button_primary_action_call"),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = OceanPrimary,
+                    contentColor = OnOceanPrimary
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PhoneInTalk,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = fullActionLabel,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.5.sp),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 3.2 HÀNH ĐỘNG PHỤ: GỌI TỔNG ĐÀI / GỌI NGƯỜI THÂN (Nhỏ gọn, Outlined)
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Nút phụ 1: Gọi tổng đài chính thức
-            if (!result.officialHotline.isNullOrBlank()) {
-                OutlinedButton(
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_DIAL).apply {
-                            data = Uri.parse("tel:${result.officialHotline}")
-                        }
-                        try {
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            clipboardManager.setText(AnnotatedString(result.officialHotline))
-                            Toast.makeText(context, "Đã sao chép số tổng đài: ${result.officialHotline}", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .testTag("button_call_official_hotline"),
-                    shape = RoundedCornerShape(10.dp),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        width = 1.dp,
-                        brush = SolidColor(OceanPrimary)
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = OceanPrimary
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Gọi tổng đài chính thức: ${result.officialHotline}",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                        fontWeight = FontWeight.SemiBold,
-                        color = OceanPrimary
-                    )
-                }
+        // ==========================================
+        // VÙNG 5: NÚT GỌI NGƯỜI THÂN (TỪ SETTINGS - HIỂN THỊ RIÊNG, NHỎ HƠN, BÊN DƯỚI)
+        // ==========================================
+        if (relativePhone.isNotBlank()) {
+            OutlinedButton(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                        data = Uri.parse("tel:$relativePhone")
+                    }
+                    try {
+                        context.startActivity(intent)
+                    } catch (_: Exception) {
+                        clipboardManager.setText(AnnotatedString(relativePhone))
+                        Toast.makeText(context, "Đã sao chép số người thân: $relativePhone", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .testTag("button_call_relative"),
+                shape = RoundedCornerShape(12.dp),
+                border = CardDefaults.outlinedCardBorder().copy(
+                    width = 1.dp,
+                    brush = SolidColor(LightOutline)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FamilyRestroom,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = TextMediumContrast
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Gọi hỏi ý kiến người thân: $relativePhone",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextHighContrast
+                )
             }
 
-            // Nút phụ 2: Gọi người thân
-            if (relativePhone.isNotBlank()) {
-                OutlinedButton(
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_DIAL).apply {
-                            data = Uri.parse("tel:$relativePhone")
-                        }
-                        try {
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            clipboardManager.setText(AnnotatedString(relativePhone))
-                            Toast.makeText(context, "Đã sao chép số người thân: $relativePhone", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .testTag("button_call_relative"),
-                    shape = RoundedCornerShape(10.dp),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        width = 1.dp,
-                        brush = SolidColor(LightOutline)
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FamilyRestroom,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = TextMediumContrast
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Gọi hỏi ý kiến người thân: $relativePhone",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextHighContrast
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(14.dp))
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
         HorizontalDivider(color = LightOutline, thickness = 1.dp)
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 3.3 NÚT "KIỂM TRA NỘI DUNG KHÁC" Ở CUỐI TRANG
+        // NÚT "KIỂM TRA NỘI DUNG KHÁC" Ở CUỐI TRANG
         Button(
             onClick = onBackToHome,
             modifier = Modifier

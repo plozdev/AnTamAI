@@ -50,18 +50,21 @@ NGUYÊN TẮC ƯU TIÊN CẢNH BÁO CAO HƠN — chỉ áp dụng khi đã có �
 
 Giới hạn: mảng "signals" tối đa 3 phần tử, chỉ liệt kê những dấu hiệu quan trọng nhất, không liệt kê hết mọi chi tiết nhỏ.
 
-Yêu cầu định dạng các trường:
-- "recommended_actions": mảng các hành động ngắn gọn, mệnh lệnh, tối đa ~6 từ mỗi mục, phù hợp làm label nút bấm (ví dụ: "Chưa giao hàng hay chuyển tiền", "Tự mở app kiểm tra số dư", "Xóa tin nhắn ngay", "Không bấm link lạ").
+QUY ĐỊNH ĐỊNH DẠNG:
+- "reminders": Mảng các lời nhắc KHÔNG cần hành động thật (không làm gì, không bấm link, không chuyển tiền, không cung cấp OTP/mật khẩu, xóa tin nhắn/chặn số...), tối đa 4 mục, câu ngắn gọn, dứt khoát.
+- "action": Chỉ điền khi có số điện thoại thật để gọi (hotline chính thức của cơ quan/ngân hàng/doanh nghiệp bị giả mạo hoặc tổng đài hỗ trợ). Nếu không có số điện thoại cụ thể, BẮT BUỘC để action = null. Cấu trúc: { "label": "Gọi tổng đài chính thức" | "Gọi hotline hỗ trợ", "phone": "số điện thoại" } hoặc null.
 - "important_notes": mảng các câu giải thích dài hoặc lưu ý quan trọng nếu cần.
+- "official_hotline": số hotline chính thức nếu nhận diện được thương hiệu/cơ quan bị giả mạo, hoặc null.
 
 Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào khác ngoài JSON:
 {
   "status": "DANGER" | "WARNING" | "SAFE",
   "opening_message": "câu trấn an mở đầu",
   "signals": ["dấu hiệu 1", "dấu hiệu 2", "dấu hiệu 3 (tối đa)"],
-  "recommended_actions": ["Hành động ngắn 1 (tối đa ~6 từ)", "Hành động ngắn 2"],
+  "reminders": ["Không chuyển tiền", "Không cung cấp thông tin cá nhân", "Không bấm vào đường link lạ"],
+  "action": { "label": "Gọi tổng đài chính thức", "phone": "1900xxxx" } hoặc null,
   "important_notes": ["Câu giải thích dài nếu cần"],
-  "official_hotline": "số hotline chính thức nếu nhận diện được thương hiệu bị giả mạo, hoặc null"
+  "official_hotline": "số hotline chính thức nếu nhận diện được, hoặc null"
 }"""
 
         fun getResolvedSystemPrompt(): String {

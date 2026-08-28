@@ -44,6 +44,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import com.example.ui.components.AppTabHeader
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -131,45 +132,11 @@ fun SettingsScreen(
         // }
 
         // Title Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp, bottom = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(OceanPrimaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = OceanPrimary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "Cài đặt ứng dụng",
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = TextHighContrast
-                )
-                Text(
-                    text = "SỐ NGƯỜI THÂN & TÙY CHỌN HỖ TRỢ",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        letterSpacing = 1.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = OceanPrimary
-                )
-            }
-        }
+        AppTabHeader(
+            icon = Icons.Default.Person,
+            title = "Cài đặt ứng dụng",
+            subtitle = "Số người thân & tùy chọn hỗ trợ"
+        )
 
         // Auto Read Voice Option Card
         Card(

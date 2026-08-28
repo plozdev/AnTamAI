@@ -6,19 +6,25 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.local.AppDatabase
+import com.example.data.local.CheckHistoryEntity
 import com.example.data.model.ScamAnalysisResult
 import com.example.data.model.SmsMessage
+import com.example.data.remote.ApiClient
+import com.example.data.repository.CheckHistoryRepository
 import com.example.data.repository.ScamAnalysisRepository
 import com.example.data.repository.SettingsRepository
 import com.example.data.repository.SmsRepository
 import com.example.util.ImageUtils
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class AppTab {
-    MESSAGES, // TAB 1 - "Tin nhắn" (Default Main Tab)
+    MESSAGES, // TAB 1 - "Nhật ký" (Default Main Tab)
     CHECK,    // TAB 2 - "Kiểm tra"
     SETTINGS  // TAB 3 - "Cài đặt"
 }
@@ -43,6 +49,8 @@ class MainViewModel(
     private val repository: ScamAnalysisRepository = ScamAnalysisRepository()
     private val settingsRepository: SettingsRepository = SettingsRepository(application)
     private val smsRepository: SmsRepository = SmsRepository(application)
+    private val database = AppDatabase.getInstance(application)
+    private val historyRepository = CheckHistoryRepository(database.checkHistoryDao())
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Home)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -58,6 +66,13 @@ class MainViewModel(
 
     private val _smsError = MutableStateFlow<String?>(null)
     val smsError: StateFlow<String?> = _smsError.asStateFlow()
+
+    val checkHistory: StateFlow<List<CheckHistoryEntity>> = historyRepository.allHistory
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     val relativePhone: StateFlow<String> = settingsRepository.relativePhone
     val autoReadResult: StateFlow<Boolean> = settingsRepository.autoReadResult
@@ -100,6 +115,15 @@ class MainViewModel(
             }
             result.fold(
                 onSuccess = { scamResult ->
+                    viewModelScope.launch {
+                        historyRepository.saveCheckHistory(
+                            contentType = "TEXT",
+                            contentPreview = text.trim(),
+                            status = scamResult.status,
+                            openingMessage = scamResult.openingMessage,
+                            resultJson = scamResult.rawJson
+                        )
+                    }
                     _uiState.value = UiState.Result(
                         data = scamResult,
                         originalText = text.trim()
@@ -130,6 +154,15 @@ class MainViewModel(
             }
             result.fold(
                 onSuccess = { scamResult ->
+                    viewModelScope.launch {
+                        historyRepository.saveCheckHistory(
+                            contentType = "IMAGE",
+                            contentPreview = if (!note.isNullOrBlank()) note else "Ảnh chụp màn hình / Hóa đơn",
+                            status = scamResult.status,
+                            openingMessage = scamResult.openingMessage,
+                            resultJson = scamResult.rawJson
+                        )
+                    }
                     _uiState.value = UiState.Result(
                         data = scamResult,
                         originalImageUri = uri
@@ -155,6 +188,15 @@ class MainViewModel(
             }
             result.fold(
                 onSuccess = { scamResult ->
+                    viewModelScope.launch {
+                        historyRepository.saveCheckHistory(
+                            contentType = "IMAGE",
+                            contentPreview = if (!note.isNullOrBlank()) note else "Ảnh chụp trực tiếp từ camera",
+                            status = scamResult.status,
+                            openingMessage = scamResult.openingMessage,
+                            resultJson = scamResult.rawJson
+                        )
+                    }
                     _uiState.value = UiState.Result(
                         data = scamResult,
                         originalImageBitmap = bitmap
@@ -166,6 +208,39 @@ class MainViewModel(
                     )
                 }
             )
+        }
+    }
+
+    fun openHistoryItem(item: CheckHistoryEntity) {
+        val result = try {
+            if (item.resultJson.isNotBlank()) {
+                val adapter = ApiClient.moshi.adapter(ScamAnalysisResult::class.java)
+                adapter.fromJson(item.resultJson)
+            } else null
+        } catch (_: Exception) {
+            null
+        } ?: ScamAnalysisResult(
+            status = item.status,
+            openingMessage = item.openingMessage,
+            signals = emptyList(),
+            reminders = emptyList()
+        )
+
+        _uiState.value = UiState.Result(
+            data = result,
+            originalText = if (item.contentType == "TEXT") item.contentPreview else null
+        )
+    }
+
+    fun deleteHistoryItem(id: Long) {
+        viewModelScope.launch {
+            historyRepository.deleteById(id)
+        }
+    }
+
+    fun clearAllHistory() {
+        viewModelScope.launch {
+            historyRepository.clearAll()
         }
     }
 

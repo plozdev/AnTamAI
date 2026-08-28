@@ -79,6 +79,7 @@ fun MainAppContent(
     val smsMessages by viewModel.smsMessages.collectAsStateWithLifecycle()
     val isSmsLoading by viewModel.isSmsLoading.collectAsStateWithLifecycle()
     val smsError by viewModel.smsError.collectAsStateWithLifecycle()
+    val checkHistory by viewModel.checkHistory.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
 
     // Ensure back press on Result, Settings, Analyzing or Error returns to Home (Messages tab)
@@ -105,20 +106,20 @@ fun MainAppContent(
                         contentColor = TextHighContrast,
                         tonalElevation = 4.dp
                     ) {
-                        // TAB 1: Tin nhắn
+                        // TAB 1: Nhật ký (Mặc định)
                         NavigationBarItem(
                             selected = currentTab == AppTab.MESSAGES,
                             onClick = { viewModel.selectTab(AppTab.MESSAGES) },
                             icon = {
                                 Icon(
                                     imageVector = if (currentTab == AppTab.MESSAGES) Icons.Filled.Message else Icons.Outlined.Message,
-                                    contentDescription = "Tin nhắn",
+                                    contentDescription = "Nhật ký",
                                     modifier = Modifier.size(24.dp)
                                 )
                             },
                             label = {
                                 Text(
-                                    text = "Tin nhắn",
+                                    text = "Nhật ký",
                                     fontSize = 12.sp,
                                     fontWeight = if (currentTab == AppTab.MESSAGES) FontWeight.Bold else FontWeight.Medium
                                 )
@@ -198,7 +199,11 @@ fun MainAppContent(
                                 messages = smsMessages,
                                 isLoading = isSmsLoading,
                                 errorMessage = smsError,
+                                checkHistory = checkHistory,
                                 onRefresh = { viewModel.loadSmsMessages() },
+                                onOpenHistoryItem = { item -> viewModel.openHistoryItem(item) },
+                                onDeleteHistoryItem = { id -> viewModel.deleteHistoryItem(id) },
+                                onClearAllHistory = { viewModel.clearAllHistory() },
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

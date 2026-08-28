@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import com.example.ui.components.AppTabHeader
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -134,57 +135,16 @@ fun HomeScreen(
             .testTag("screen_home"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App Header with SafeArea padding
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp, bottom = 10.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 6.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(OceanPrimary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Shield,
-                            contentDescription = "Logo AnTâm.AI",
-                            tint = OnOceanPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Column {
-                        Text(
-                            text = "AnTâm.AI",
-                            style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
-                            fontWeight = FontWeight.Bold,
-                            color = TextHighContrast
-                        )
-                        Text(
-                            text = "Trợ lý an ninh & phòng chống lừa đảo",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                            color = TextSubtle
-                        )
-                    }
-                }
-
-                // Settings Button
+        // App Header using unified component
+        AppTabHeader(
+            icon = Icons.Default.Shield,
+            title = "Kiểm tra lừa đảo",
+            subtitle = "Chụp ảnh màn hình hoặc dán tin nhắn",
+            trailingAction = {
                 IconButton(
                     onClick = onOpenSettings,
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(LightSurfaceVariant)
                         .testTag("button_open_settings")
@@ -193,45 +153,36 @@ fun HomeScreen(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Cài đặt ứng dụng",
                         tint = OceanPrimary,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
+        )
 
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Text(
-                text = "Xin chào bạn! Hãy chọn gửi hình ảnh hoặc dán nội dung tin nhắn để kiểm tra độ an toàn.",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp, lineHeight = 19.sp),
-                color = TextMediumContrast,
-                fontWeight = FontWeight.Normal
-            )
-
-            // Family phone indicator if configured
-            if (relativePhone.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(SafeContainer)
-                        .clickable { onOpenSettings() }
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = null,
-                        tint = SafeGreen,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Số người thân đã lưu: $relativePhone (Nhấn để sửa)",
-                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
-                        color = SafeGreen,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+        // Family phone indicator if configured
+        if (relativePhone.isNotBlank()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(SafeContainer)
+                    .clickable { onOpenSettings() }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Phone,
+                    contentDescription = null,
+                    tint = SafeGreen,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Số người thân đã lưu: $relativePhone (Nhấn để sửa)",
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
+                    color = SafeGreen,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
 
