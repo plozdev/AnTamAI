@@ -2,8 +2,15 @@ package com.example.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,17 +34,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -68,11 +80,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -80,6 +94,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.data.local.CheckHistoryEntity
+import com.example.data.local.SmsEntity
 import com.example.data.model.SmsMessage
 import com.example.ui.components.AppTabHeader
 import com.example.ui.theme.DangerBorder
@@ -87,6 +102,7 @@ import com.example.ui.theme.DangerContainer
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.LightBackground
 import com.example.ui.theme.LightOutline
+import com.example.ui.theme.LightOutlineVariant
 import com.example.ui.theme.LightSurface
 import com.example.ui.theme.LightSurfaceVariant
 import com.example.ui.theme.OceanPrimary
@@ -124,21 +140,25 @@ private fun formatMessageDate(timestamp: Long): String {
 
 @Composable
 fun SmsInboxScreen(
-    messages: List<SmsMessage>,
+    smsEntities: List<SmsEntity> = emptyList(),
+    fallbackMessages: List<SmsMessage> = emptyList(),
     isLoading: Boolean,
     errorMessage: String?,
     checkHistory: List<CheckHistoryEntity> = emptyList(),
+    autoScanEnabled: Boolean = true,
     onRefresh: () -> Unit,
+    onOpenSmsItem: (SmsEntity) -> Unit = {},
     onOpenHistoryItem: (CheckHistoryEntity) -> Unit = {},
     onDeleteHistoryItem: (Long) -> Unit = {},
     onClearAllHistory: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
     var selectedSubTabIndex by remember { mutableIntStateOf(0) }
 
-    var hasPermission by remember {
+    var hasReadSmsPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
                 context,
@@ -147,46 +167,88 @@ fun SmsInboxScreen(
         )
     }
 
-    var showPermissionRationaleDialog by remember { mutableStateOf(false) }
-    var selectedSmsForDetail by remember { mutableStateOf<SmsMessage?>(null) }
+    var hasReceiveSmsPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECEIVE_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    var showPermissionExplanationDialog by remember { mutableStateOf(false) }
+    var selectedSmsForDetail by remember { mutableStateOf<SmsEntity?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var filterOnlySuspicious by remember { mutableStateOf(false) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasPermission = isGranted
-        if (isGranted) {
+    val multiplePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        hasReadSmsPermission = permissions[Manifest.permission.READ_SMS] == true
+        hasReceiveSmsPermission = permissions[Manifest.permission.RECEIVE_SMS] == true
+        if (hasReadSmsPermission) {
             onRefresh()
         }
     }
 
-    LaunchedEffect(hasPermission) {
-        if (hasPermission) {
+    LaunchedEffect(hasReadSmsPermission) {
+        if (hasReadSmsPermission) {
             onRefresh()
         }
     }
 
-    val filteredMessages = remember(messages, searchQuery, filterOnlySuspicious) {
-        messages.filter { msg ->
+    // Convert fallbackMessages to entities if room entities are currently empty
+    val displayedEntities = remember(smsEntities, fallbackMessages) {
+        if (smsEntities.isNotEmpty()) {
+            smsEntities
+        } else {
+            fallbackMessages.map { msg ->
+                SmsEntity(
+                    id = msg.id,
+                    smsId = msg.id,
+                    address = msg.address,
+                    body = msg.body,
+                    timestamp = msg.date,
+                    heuristicNeedsScrutiny = msg.heuristicResult.needsScrutiny,
+                    heuristicSignals = msg.heuristicResult.matchedSignals.joinToString("|||"),
+                    status = if (msg.heuristicResult.needsScrutiny) "WARNING" else "SAFE",
+                    openingMessage = if (msg.heuristicResult.needsScrutiny) "Tin nhắn có từ khóa cần chú ý" else "Tin nhắn bình thường",
+                    resultJson = ""
+                )
+            }
+        }
+    }
+
+    val filteredEntities = remember(displayedEntities, searchQuery, filterOnlySuspicious) {
+        displayedEntities.filter { entity ->
             val matchSearch = searchQuery.isBlank() ||
-                msg.address.contains(searchQuery, ignoreCase = true) ||
-                msg.body.contains(searchQuery, ignoreCase = true)
-            val matchFilter = !filterOnlySuspicious || msg.heuristicResult.needsScrutiny
+                entity.address.contains(searchQuery, ignoreCase = true) ||
+                entity.body.contains(searchQuery, ignoreCase = true)
+            val isSuspiciousOrDanger = entity.heuristicNeedsScrutiny ||
+                entity.status == "DANGER" ||
+                entity.status == "WARNING" ||
+                entity.status == "ANALYZING"
+            val matchFilter = !filterOnlySuspicious || isSuspiciousOrDanger
             matchSearch && matchFilter
         }
     }
 
-    val suspiciousCount = remember(messages) {
-        messages.count { it.heuristicResult.needsScrutiny }
+    val suspiciousOrDangerCount = remember(displayedEntities) {
+        displayedEntities.count {
+            it.status == "DANGER" || it.status == "WARNING" || it.heuristicNeedsScrutiny
+        }
     }
 
-    val suspiciousList = remember(filteredMessages) {
-        filteredMessages.filter { it.heuristicResult.needsScrutiny }
+    val suspiciousList = remember(filteredEntities) {
+        filteredEntities.filter {
+            it.status == "DANGER" || it.status == "WARNING" || it.status == "ANALYZING" || it.heuristicNeedsScrutiny
+        }
     }
 
-    val normalList = remember(filteredMessages) {
-        filteredMessages.filter { !it.heuristicResult.needsScrutiny }
+    val normalList = remember(filteredEntities) {
+        filteredEntities.filter {
+            it.status == "SAFE" && !it.heuristicNeedsScrutiny
+        }
     }
 
     Column(
@@ -196,9 +258,7 @@ fun SmsInboxScreen(
             .statusBarsPadding()
             .testTag("screen_sms_inbox")
     ) {
-        // ==========================================
         // UNIFIED HEADER BAR
-        // ==========================================
         AppTabHeader(
             icon = Icons.Default.History,
             title = "Nhật ký an toàn",
@@ -207,10 +267,10 @@ fun SmsInboxScreen(
                 if (selectedSubTabIndex == 0) {
                     IconButton(
                         onClick = {
-                            if (hasPermission) {
+                            if (hasReadSmsPermission) {
                                 onRefresh()
                             } else {
-                                showPermissionRationaleDialog = true
+                                showPermissionExplanationDialog = true
                             }
                         },
                         modifier = Modifier.testTag("button_refresh_sms")
@@ -225,9 +285,7 @@ fun SmsInboxScreen(
             }
         )
 
-        // ==========================================
         // SEGMENTED CONTROL: "SMS" | "Đã kiểm tra tay"
-        // ==========================================
         TabRow(
             selectedTabIndex = selectedSubTabIndex,
             containerColor = LightSurfaceVariant,
@@ -257,7 +315,7 @@ fun SmsInboxScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "SMS (${messages.size})",
+                            text = "SMS (${displayedEntities.size})",
                             style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
                             fontWeight = if (selectedSubTabIndex == 0) FontWeight.Bold else FontWeight.Medium,
                             color = if (selectedSubTabIndex == 0) OceanPrimary else TextMediumContrast
@@ -293,11 +351,9 @@ fun SmsInboxScreen(
         Spacer(modifier = Modifier.height(6.dp))
 
         if (selectedSubTabIndex == 0) {
-            // ==========================================
             // SUB-TAB 1: SMS LIST
-            // ==========================================
-            if (!hasPermission) {
-                // PERMISSION NOT GRANTED VIEW
+            if (!hasReadSmsPermission) {
+                // PERMISSION NOT GRANTED VIEW (Educational Rationale Screen)
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -308,44 +364,86 @@ fun SmsInboxScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(76.dp)
                             .clip(CircleShape)
                             .background(OceanPrimaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.MarkEmailRead,
+                            imageVector = Icons.Default.Shield,
                             contentDescription = null,
                             tint = OceanPrimary,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(40.dp)
                         )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "Cần quyền đọc tin nhắn SMS",
+                        text = "Bảo vệ tin nhắn SMS tức thời",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
                         fontWeight = FontWeight.Bold,
-                        color = TextHighContrast
+                        color = TextHighContrast,
+                        textAlign = TextAlign.Center
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Ứng dụng cần quyền đọc tin nhắn SMS để tự động kiểm tra nhanh các dấu hiệu nghi ngờ (như link lạ, mạo danh ngân hàng/công an) ngay trên thiết bị của bạn.",
+                        text = "AnTâm.AI giúp ba mẹ tự động nhận diện tin nhắn lừa đảo mạo danh ngân hàng, công an, phạt nguội hoặc chứa đường link nguy hiểm.",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 13.5.sp,
                             lineHeight = 20.sp
                         ),
                         color = TextMediumContrast,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Benefit Items
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = LightSurfaceVariant),
+                        border = CardDefaults.outlinedCardBorder().copy(width = 1.dp, brush = SolidColor(LightOutline))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(verticalAlignment = Alignment.Top) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = SafeGreen,
+                                    modifier = Modifier.size(18.dp).padding(top = 2.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Đọc tin nhắn sẵn có: Quét tìm các tin có dấu hiệu đe dọa, link lạ.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
+                                    color = TextHighContrast
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.Top) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = OceanPrimary,
+                                    modifier = Modifier.size(18.dp).padding(top = 2.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Cảnh báo SMS mới đến: Tự động phân tích và rung chuông cảnh báo ngay khi nhận tin đáng ngờ.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
+                                    color = TextHighContrast
+                                )
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Button(
-                        onClick = { showPermissionRationaleDialog = true },
+                        onClick = { showPermissionExplanationDialog = true },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
@@ -363,13 +461,58 @@ fun SmsInboxScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Cấp quyền đọc SMS",
+                            text = "Bật bảo vệ tin nhắn SMS",
                             style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
             } else {
+                // Realtime Auto Scan Disabled Warning Banner (if user has read permission but disabled realtime scan or denied receive permission)
+                if (!hasReceiveSmsPermission || !autoScanEnabled) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .clickable {
+                                if (!hasReceiveSmsPermission) {
+                                    showPermissionExplanationDialog = true
+                                } else {
+                                    onOpenSettings()
+                                }
+                            }
+                            .testTag("banner_realtime_sms_disabled"),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = LightSurfaceVariant),
+                        border = CardDefaults.outlinedCardBorder().copy(width = 1.dp, brush = SolidColor(LightOutline))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = OceanPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (!hasReceiveSmsPermission) "Chưa bật cảnh báo SMS mới đến. Chạm để cấp quyền bảo vệ tức thời." else "Tự động quét SMS mới đang tắt trong Cài đặt.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                                color = TextMediumContrast,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = TextSubtle,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+
                 // SMS SEARCH BAR
                 OutlinedTextField(
                     value = searchQuery,
@@ -416,7 +559,7 @@ fun SmsInboxScreen(
                 )
 
                 // PROMINENT WARNING BANNER IF SUSPICIOUS SMS EXIST
-                if (suspiciousCount > 0) {
+                if (suspiciousOrDangerCount > 0) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -452,7 +595,7 @@ fun SmsInboxScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = "⚠️ $suspiciousCount tin nhắn cần chú ý",
+                                        text = "⚠️ $suspiciousOrDangerCount tin nhắn cần chú ý",
                                         style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
                                         fontWeight = FontWeight.Bold,
                                         color = OnWarningContainer
@@ -475,7 +618,7 @@ fun SmsInboxScreen(
                 }
 
                 // SMS LIST
-                if (isLoading) {
+                if (isLoading && displayedEntities.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -484,13 +627,13 @@ fun SmsInboxScreen(
                             CircularProgressIndicator(color = OceanPrimary)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "Đang quét tin nhắn SMS...",
+                                text = "Đang đồng bộ và kiểm tra an toàn...",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp),
                                 color = TextSubtle
                             )
                         }
                     }
-                } else if (!errorMessage.isNullOrBlank()) {
+                } else if (!errorMessage.isNullOrBlank() && displayedEntities.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -502,7 +645,7 @@ fun SmsInboxScreen(
                                 text = "Lỗi khi đọc tin nhắn: $errorMessage",
                                 color = DangerRed,
                                 style = MaterialTheme.typography.bodyMedium,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                textAlign = TextAlign.Center
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             OutlinedButton(onClick = onRefresh) {
@@ -510,7 +653,7 @@ fun SmsInboxScreen(
                             }
                         }
                     }
-                } else if (filteredMessages.isEmpty()) {
+                } else if (filteredEntities.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -529,7 +672,7 @@ fun SmsInboxScreen(
                                 text = if (filterOnlySuspicious) "Không có tin nhắn nào cần chú ý!" else "Không tìm thấy tin nhắn SMS phù hợp",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                                 color = TextSubtle,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
@@ -541,11 +684,11 @@ fun SmsInboxScreen(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Section 1: Cần chú ý
+                        // Section 1: Cần chú ý / Nguy hiểm / Đang phân tích
                         if (suspiciousList.isNotEmpty()) {
                             item(key = "header_suspicious") {
                                 Text(
-                                    text = "CẦN CHÚ Ý (${suspiciousList.size})",
+                                    text = "CẦN CHÚ Ý & CẢNH BÁO (${suspiciousList.size})",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
@@ -556,15 +699,15 @@ fun SmsInboxScreen(
                                 )
                             }
 
-                            items(suspiciousList, key = { "suspicious_${it.id}" }) { sms ->
-                                SmsItemCard(
-                                    sms = sms,
-                                    onClick = { selectedSmsForDetail = sms }
+                            items(suspiciousList, key = { "suspicious_${it.id}_${it.timestamp}" }) { entity ->
+                                SmsEntityCard(
+                                    entity = entity,
+                                    onClick = { selectedSmsForDetail = entity }
                                 )
                             }
                         }
 
-                        // Section 2: Bình thường (if not filtered)
+                        // Section 2: Bình thường
                         if (!filterOnlySuspicious && normalList.isNotEmpty()) {
                             item(key = "header_normal") {
                                 Text(
@@ -579,10 +722,10 @@ fun SmsInboxScreen(
                                 )
                             }
 
-                            items(normalList, key = { "normal_${it.id}" }) { sms ->
-                                SmsItemCard(
-                                    sms = sms,
-                                    onClick = { selectedSmsForDetail = sms }
+                            items(normalList, key = { "normal_${it.id}_${it.timestamp}" }) { entity ->
+                                SmsEntityCard(
+                                    entity = entity,
+                                    onClick = { selectedSmsForDetail = entity }
                                 )
                             }
                         }
@@ -590,9 +733,7 @@ fun SmsInboxScreen(
                 }
             }
         } else {
-            // ==========================================
             // SUB-TAB 2: ĐÃ KIỂM TRA TAY (MANUAL CHECK HISTORY)
-            // ==========================================
             if (checkHistory.isEmpty()) {
                 Column(
                     modifier = Modifier
@@ -634,7 +775,7 @@ fun SmsInboxScreen(
                             lineHeight = 19.sp
                         ),
                         color = TextSubtle,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
                 }
             } else {
@@ -697,43 +838,87 @@ fun SmsInboxScreen(
 
     // DETAIL MODAL FOR SELECTED SMS
     if (selectedSmsForDetail != null) {
-        val sms = selectedSmsForDetail!!
-        SmsDetailDialog(
-            sms = sms,
-            onDismiss = { selectedSmsForDetail = null }
+        val entity = selectedSmsForDetail!!
+        SmsEntityDetailDialog(
+            entity = entity,
+            onDismiss = { selectedSmsForDetail = null },
+            onViewFullResult = {
+                selectedSmsForDetail = null
+                onOpenSmsItem(entity)
+            }
         )
     }
 
-    // PERMISSION RATIONALE DIALOG
-    if (showPermissionRationaleDialog) {
+    // PERMISSION EXPLANATION DIALOG (Friendly Vietnamese explanation before triggering system prompt)
+    if (showPermissionExplanationDialog) {
         AlertDialog(
-            onDismissRequest = { showPermissionRationaleDialog = false },
+            onDismissRequest = { showPermissionExplanationDialog = false },
             title = {
-                Text(
-                    text = "Quyền truy cập SMS an toàn",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = null,
+                        tint = OceanPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Quyền bảo vệ tin nhắn SMS",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             },
             text = {
-                Text(
-                    text = "AnTâm.AI cam kết chỉ quét cục bộ trên thiết bị của bạn nhằm cảnh báo sớm các dấu hiệu đáng ngờ. Dữ liệu tin nhắn hoàn toàn không bị gửi ra ngoài nếu bạn không yêu cầu kiểm tra chuyên sâu.",
-                    style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp)
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Để bảo vệ ba mẹ trước các tin nhắn lừa đảo ngày càng tinh vi, ứng dụng cần được cấp quyền:",
+                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp, fontSize = 13.5.sp),
+                        color = TextHighContrast
+                    )
+
+                    Text(
+                        text = "1. Đọc tin nhắn (READ_SMS): Giúp quét các tin nhắn hiện có để tìm dấu hiệu đe dọa hoặc link độc hại.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, lineHeight = 18.sp),
+                        color = TextMediumContrast
+                    )
+
+                    Text(
+                        text = "2. Nhận tin nhắn (RECEIVE_SMS): Tự động phát hiện và cảnh báo ngay khi có tin nhắn lừa đảo mới gửi tới.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, lineHeight = 18.sp),
+                        color = TextMediumContrast
+                    )
+
+                    Text(
+                        text = "🔒 Cam kết: Mọi dữ liệu tin nhắn đều được quét an toàn trên thiết bị của bạn, bảo vệ quyền riêng tư tuyệt đối.",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = OceanPrimary
+                        )
+                    )
+                }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        showPermissionRationaleDialog = false
-                        permissionLauncher.launch(Manifest.permission.READ_SMS)
+                        showPermissionExplanationDialog = false
+                        val permissionsToRequest = mutableListOf(
+                            Manifest.permission.READ_SMS,
+                            Manifest.permission.RECEIVE_SMS
+                        )
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        multiplePermissionLauncher.launch(permissionsToRequest.toTypedArray())
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = OceanPrimary)
                 ) {
-                    Text("Đồng ý & Tiếp tục")
+                    Text("Đồng ý & Cho phép")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPermissionRationaleDialog = false }) {
+                TextButton(onClick = { showPermissionExplanationDialog = false }) {
                     Text("Để sau")
                 }
             }
@@ -742,238 +927,256 @@ fun SmsInboxScreen(
 }
 
 @Composable
-private fun HistoryItemCard(
-    item: CheckHistoryEntity,
-    onClick: () -> Unit,
-    onDelete: () -> Unit
+private fun SmsEntityCard(
+    entity: SmsEntity,
+    onClick: () -> Unit
 ) {
-    val statusUpper = item.status.uppercase()
-    val statusDotColor = when {
-        statusUpper.contains("DANGER") -> DangerRed
-        statusUpper.contains("WARNING") -> WarningAmber
-        else -> SafeGreen
+    val statusUpper = entity.status.uppercase()
+    val isAnalyzing = statusUpper == "ANALYZING"
+    val isDanger = statusUpper == "DANGER"
+    val isWarning = statusUpper == "WARNING" || entity.heuristicNeedsScrutiny
+
+    val (badgeText, badgeColor, badgeBg) = when {
+        isAnalyzing -> Triple("Đang phân tích...", OceanPrimary, OceanPrimaryContainer)
+        isDanger -> Triple("Nguy hiểm", DangerRed, DangerContainer)
+        isWarning -> Triple("Cần chú ý", WarningAmber, WarningContainer)
+        else -> Triple("Bình thường", SafeGreen, SafeContainer)
     }
 
-    val formattedTime = remember(item.timestamp) {
-        formatMessageDate(item.timestamp)
+    val formattedTime = remember(entity.timestamp) {
+        formatMessageDate(entity.timestamp)
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
-            .testTag("history_item_${item.id}"),
-        shape = RoundedCornerShape(12.dp),
+            .clickable(onClick = onClick)
+            .testTag("card_sms_item_${entity.id}"),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = LightSurface),
         border = CardDefaults.outlinedCardBorder().copy(
-            width = 1.dp,
-            brush = SolidColor(LightOutline)
+            width = if (isDanger || isWarning) 1.2.dp else 1.dp,
+            brush = SolidColor(
+                when {
+                    isDanger -> DangerBorder
+                    isWarning -> WarningBorder
+                    else -> LightOutlineVariant
+                }
+            )
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Avatar
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(42.dp)
                     .clip(CircleShape)
-                    .background(if (item.contentType == "IMAGE") OceanPrimaryContainer else LightSurfaceVariant),
+                    .background(
+                        when {
+                            isDanger -> DangerContainer
+                            isWarning -> WarningContainer
+                            isAnalyzing -> OceanPrimaryContainer
+                            else -> LightSurfaceVariant
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = if (item.contentType == "IMAGE") Icons.Default.Image else Icons.Default.TextFields,
-                    contentDescription = null,
-                    tint = if (item.contentType == "IMAGE") OceanPrimary else TextMediumContrast,
-                    modifier = Modifier.size(20.dp)
-                )
+                if (isAnalyzing) {
+                    AnalyzingPulseIndicator()
+                } else if (isDanger) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = DangerRed,
+                        modifier = Modifier.size(22.dp)
+                    )
+                } else if (isWarning) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = WarningAmber,
+                        modifier = Modifier.size(22.dp)
+                    )
+                } else {
+                    val initial = entity.address.firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "S"
+                    Text(
+                        text = initial,
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = OceanPrimary
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
+            // Body info
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (item.contentType == "IMAGE") "Kiểm tra ảnh / hóa đơn" else "Kiểm tra tin nhắn",
-                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = TextHighContrast,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = item.contentPreview,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = TextMediumContrast,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.Center
-            ) {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(statusDotColor)
+                    Text(
+                        text = entity.address,
+                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = TextHighContrast,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
-                    Spacer(modifier = Modifier.width(5.dp))
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
                     Text(
                         text = formattedTime,
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         color = TextSubtle
                     )
                 }
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(26.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Xóa mục này",
-                        tint = TextSubtle,
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
-            }
-        }
-    }
-}
 
-@Composable
-private fun SmsItemCard(
-    sms: SmsMessage,
-    onClick: () -> Unit
-) {
-    val isSuspicious = sms.heuristicResult.needsScrutiny
-    val formattedTime = remember(sms.date) {
-        formatMessageDate(sms.date)
-    }
-
-    val initialLetter = remember(sms.address) {
-        val trimmed = sms.address.trim()
-        val firstChar = trimmed.firstOrNull { it.isLetter() } ?: trimmed.firstOrNull { it.isDigit() }
-        firstChar?.uppercaseChar()?.toString()
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .testTag("sms_card_${sms.id}"),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = LightSurface),
-        border = CardDefaults.outlinedCardBorder().copy(
-            width = 1.dp,
-            brush = SolidColor(LightOutline)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(OceanPrimaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                if (!initialLetter.isNullOrBlank()) {
-                    Text(
-                        text = initialLetter,
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = OceanPrimary
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = OceanPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = sms.address,
-                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = TextHighContrast,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
                 Spacer(modifier = Modifier.height(2.dp))
+
                 Text(
-                    text = sms.body,
+                    text = entity.body,
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                     color = TextMediumContrast,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-            }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = formattedTime,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                    color = TextSubtle
-                )
                 Spacer(modifier = Modifier.height(4.dp))
-                if (isSuspicious) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(WarningAmber)
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(SafeGreen.copy(alpha = 0.4f))
-                    )
+
+                // Status Badge
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isAnalyzing) {
+                        AnalyzingBadge()
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(badgeBg)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = badgeText,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = badgeColor
+                            )
+                        }
+                    }
                 }
             }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = TextSubtle,
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }
 
 @Composable
-private fun SmsDetailDialog(
-    sms: SmsMessage,
-    onDismiss: () -> Unit
+private fun AnalyzingPulseIndicator() {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse_transition")
+    val alphaAnim by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(18.dp)
+            .alpha(alphaAnim),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(16.dp),
+            strokeWidth = 2.dp,
+            color = OceanPrimary
+        )
+    }
+}
+
+@Composable
+private fun AnalyzingBadge() {
+    val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
+    val alphaAnim by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 700, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "badge_alpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .alpha(alphaAnim)
+            .clip(RoundedCornerShape(6.dp))
+            .background(OceanPrimaryContainer)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(OceanPrimary)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "Đang phân tích...",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = OceanPrimary
+            )
+        }
+    }
+}
+
+@Composable
+private fun SmsEntityDetailDialog(
+    entity: SmsEntity,
+    onDismiss: () -> Unit,
+    onViewFullResult: () -> Unit
 ) {
-    val isSuspicious = sms.heuristicResult.needsScrutiny
-    val formattedDate = remember(sms.date) {
+    val statusUpper = entity.status.uppercase()
+    val isDanger = statusUpper == "DANGER"
+    val isWarning = statusUpper == "WARNING" || entity.heuristicNeedsScrutiny
+    val isAnalyzing = statusUpper == "ANALYZING"
+
+    val formattedDate = remember(entity.timestamp) {
         val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        sdf.format(Date(sms.date))
+        sdf.format(Date(entity.timestamp))
+    }
+
+    val signalsList = remember(entity.heuristicSignals) {
+        if (entity.heuristicSignals.isNotBlank()) {
+            entity.heuristicSignals.split("|||").filter { it.isNotBlank() }
+        } else emptyList()
     }
 
     Dialog(
@@ -992,7 +1195,7 @@ private fun SmsDetailDialog(
                     .padding(18.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                // Dialog Header
+                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1001,22 +1204,39 @@ private fun SmsDetailDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
-                                .background(if (isSuspicious) WarningContainer else OceanPrimaryContainer),
+                                .background(
+                                    when {
+                                        isDanger -> DangerContainer
+                                        isWarning -> WarningContainer
+                                        isAnalyzing -> OceanPrimaryContainer
+                                        else -> SafeContainer
+                                    }
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = if (isSuspicious) Icons.Default.Warning else Icons.Default.Message,
+                                imageVector = when {
+                                    isDanger -> Icons.Default.Warning
+                                    isWarning -> Icons.Default.Warning
+                                    isAnalyzing -> Icons.Default.AccessTime
+                                    else -> Icons.Default.CheckCircle
+                                },
                                 contentDescription = null,
-                                tint = if (isSuspicious) WarningAmber else OceanPrimary,
-                                modifier = Modifier.size(18.dp)
+                                tint = when {
+                                    isDanger -> DangerRed
+                                    isWarning -> WarningAmber
+                                    isAnalyzing -> OceanPrimary
+                                    else -> SafeGreen
+                                },
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = sms.address,
+                                text = entity.address,
                                 style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
                                 fontWeight = FontWeight.Bold,
                                 color = TextHighContrast
@@ -1043,8 +1263,46 @@ private fun SmsDetailDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Heuristic signals if suspicious
-                if (isSuspicious && sms.heuristicResult.matchedSignals.isNotEmpty()) {
+                // Reassuring explanation
+                if (entity.openingMessage.isNotBlank()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = when {
+                                isDanger -> DangerContainer
+                                isWarning -> WarningContainer
+                                else -> SafeContainer
+                            }
+                        ),
+                        border = CardDefaults.outlinedCardBorder().copy(
+                            width = 1.dp,
+                            brush = SolidColor(
+                                when {
+                                    isDanger -> DangerBorder
+                                    isWarning -> WarningBorder
+                                    else -> SafeBorder
+                                }
+                            )
+                        )
+                    ) {
+                        Text(
+                            text = entity.openingMessage,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 19.sp),
+                            fontWeight = FontWeight.Medium,
+                            color = when {
+                                isDanger -> DangerRed
+                                isWarning -> OnWarningContainer
+                                else -> SafeGreen
+                            },
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // Detected suspicious signals
+                if (signalsList.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -1056,13 +1314,13 @@ private fun SmsDetailDialog(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = "Dấu hiệu nghi ngờ phát hiện trên máy:",
+                                text = "Dấu hiệu đáng ngờ phát hiện:",
                                 style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
                                 fontWeight = FontWeight.Bold,
                                 color = OnWarningContainer
                             )
                             Spacer(modifier = Modifier.height(6.dp))
-                            sms.heuristicResult.matchedSignals.forEach { signal ->
+                            signalsList.forEach { signal ->
                                 Row(
                                     modifier = Modifier.padding(vertical = 2.dp),
                                     verticalAlignment = Alignment.Top
@@ -1077,10 +1335,10 @@ private fun SmsDetailDialog(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
 
-                // Full SMS Body
+                // Message Body
                 Text(
                     text = "Nội dung tin nhắn:",
                     style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
@@ -1098,7 +1356,7 @@ private fun SmsDetailDialog(
                     )
                 ) {
                     Text(
-                        text = sms.body,
+                        text = entity.body,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 13.5.sp,
                             lineHeight = 20.sp
@@ -1110,28 +1368,148 @@ private fun SmsDetailDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = OceanPrimary)
-                ) {
-                    Text(
-                        text = "Đóng",
-                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                        fontWeight = FontWeight.Bold
-                    )
+                // Actions
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (entity.resultJson.isNotBlank() || isDanger || isWarning) {
+                        Button(
+                            onClick = onViewFullResult,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDanger) DangerRed else OceanPrimary
+                            )
+                        ) {
+                            Text(
+                                text = "Xem phân tích chi tiết & hướng dẫn",
+                                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = "Đóng",
+                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-private data class Quad<A, B, C, D>(
-    val first: A,
-    val second: B,
-    val third: C,
-    val fourth: D
-)
+@Composable
+private fun HistoryItemCard(
+    item: CheckHistoryEntity,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val statusUpper = item.status.uppercase()
+    val statusDotColor = when {
+        statusUpper.contains("DANGER") -> DangerRed
+        statusUpper.contains("WARNING") -> WarningAmber
+        else -> SafeGreen
+    }
+
+    val formattedTime = remember(item.timestamp) {
+        formatMessageDate(item.timestamp)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .testTag("card_history_item_${item.id}"),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = LightSurface),
+        border = CardDefaults.outlinedCardBorder().copy(
+            width = 1.dp,
+            brush = SolidColor(LightOutlineVariant)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        when {
+                            statusUpper.contains("DANGER") -> DangerContainer
+                            statusUpper.contains("WARNING") -> WarningContainer
+                            else -> SafeContainer
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (item.contentType == "IMAGE") Icons.Default.Image else Icons.Default.TextFields,
+                    contentDescription = null,
+                    tint = statusDotColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (item.contentType == "IMAGE") "Kiểm tra ảnh chụp" else "Kiểm tra nội dung text",
+                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = TextHighContrast
+                    )
+                    Text(
+                        text = formattedTime,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = TextSubtle
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = item.contentPreview,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                    color = TextMediumContrast,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Xóa",
+                    tint = TextSubtle,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}

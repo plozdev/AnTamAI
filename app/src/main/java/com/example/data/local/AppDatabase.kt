@@ -5,10 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [CheckHistoryEntity::class], version = 1, exportSchema = false)
+@Database(entities = [CheckHistoryEntity::class, SmsEntity::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun checkHistoryDao(): CheckHistoryDao
+    abstract fun smsDao(): SmsDao
 
     companion object {
         @Volatile
