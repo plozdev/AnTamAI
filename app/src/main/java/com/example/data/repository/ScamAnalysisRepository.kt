@@ -37,14 +37,12 @@ Chỉ hạ mức xuống WARNING hoặc DANGER khi nội dung có ÍT NHẤT M�
 Các yếu tố PHỤ như "tên người gửi viết tắt", "nội dung gửi lặp lại", "không thể trả lời tin nhắn" KHÔNG đủ để tự nâng mức cảnh báo nếu KHÔNG đi kèm ít nhất một yếu tố rủi ro CHÍNH ở trên — có thể nêu ra như lưu ý phụ trong signals, nhưng không dùng để quyết định status.
 Nếu nội dung là thông báo/tin nhắn thông thường, không có bất kỳ yếu tố rủi ro CHÍNH nào: status = "SAFE".
 
-QUY TẮC RIÊNG CHO ẢNH HÓA ĐƠN/BIÊN LAI CHUYỂN KHOẢN:
-Trước tiên, xác định content type: nếu ảnh là hóa đơn/biên lai/xác nhận chuyển khoản (không phải tin nhắn chat hay website), áp dụng quy tắc sau thay vì quy tắc chung:
-- KHÔNG BAO GIỜ gán status = "SAFE" cho loại nội dung này, dù ảnh trông hoàn toàn bình thường và không có dấu hiệu chỉnh sửa. Một ảnh chụp màn hình KHÔNG BAO GIỜ là bằng chứng xác thực một giao dịch đã thực sự hoàn tất — kẻ lừa đảo tinh vi luôn tạo ảnh giả trông "sạch".
-- Nếu phát hiện dấu hiệu bất thường rõ ràng (font/logo sai lệch, số liệu bất thường, bố cục không tự nhiên): status = "DANGER".
-- Nếu KHÔNG phát hiện dấu hiệu bất thường: status = "WARNING" (không phải "SAFE"), với opening_message theo tinh thần: "Ảnh này không có dấu hiệu chỉnh sửa rõ ràng, nhưng ảnh chụp màn hình không thể xác nhận tiền đã thực sự vào tài khoản."
-- Trong MỌI trường hợp (dù DANGER hay WARNING), important_notes BẮT BUỘC phải luôn chứa 2 lưu ý sau, không được lược bỏ:
-  1. "Mặc dù bức ảnh này trông hoàn toàn bình thường, bạn tuyệt đối chưa giao hàng hay chuyển tiền vội nhé ạ."
-  2. "Nguyên tắc vàng: Bạn hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
+QUY TẮC RIÊNG CHO ẢNH BIÊN LAI/CHUYỂN KHOẢN:
+Trước tiên, xác định content type: nếu ảnh là hóa đơn/biên lai/xác nhận chuyển khoản, áp dụng các quy tắc sau:
+- Nếu KHÔNG phát hiện dấu hiệu bất thường: status = "SAFE"
+- Nếu phát hiện dấu hiệu bất thường CỤ THỂ, RÕ RÀNG (sai font/logo, số liệu toán học không khớp, artifact chỉnh sửa rõ rệt): status = "DANGER"
+- Nếu chỉ có tín hiệu MƠ HỒ, không chắc chắn (định dạng lạ nhưng không rõ là giả hay do quy ước UI của ngân hàng): status = "WARNING", KHÔNG được đẩy thẳng lên DANGER
+- QUAN TRỌNG: tên người nhận dạng mã định danh dài, có chuỗi ký tự/số ghép lại (VD: "Ph Truong Dh Fpt Tai Tphcm_14002939479") là quy ước hiển thị BÌNH THƯỜNG của các app ngân hàng Việt Nam (Vietcombank, Techcombank...) khi chuyển khoản liên ngân hàng — TUYỆT ĐỐI KHÔNG coi đây là bằng chứng giả mạo, trừ khi có bằng chứng khác cụ thể hơn đi kèm.
 
 NGUYÊN TẮC ƯU TIÊN CẢNH BÁO CAO HƠN — chỉ áp dụng khi đã có ít nhất 1 yếu tố rủi ro CHÍNH nhưng mức độ chưa rõ ràng (VD: có link lạ nhưng chưa chắc độc hại) — không áp dụng cho nội dung hoàn toàn không có yếu tố rủi ro CHÍNH nào.
 
@@ -55,6 +53,12 @@ QUY ĐỊNH ĐỊNH DẠNG:
 - "action": Chỉ điền khi có số điện thoại thật để gọi (hotline chính thức của cơ quan/ngân hàng/doanh nghiệp bị giả mạo hoặc tổng đài hỗ trợ). Nếu không có số điện thoại cụ thể, BẮT BUỘC để action = null. Cấu trúc: { "label": "Gọi tổng đài chính thức" | "Gọi hotline hỗ trợ", "phone": "số điện thoại" } hoặc null.
 - "important_notes": mảng các câu giải thích dài hoặc lưu ý quan trọng nếu cần.
 - "official_hotline": số hotline chính thức nếu nhận diện được thương hiệu/cơ quan bị giả mạo, hoặc null.
+- "financial_reminder": object BẮT BUỘC LUÔN XUẤT HIỆN cho mọi ảnh biên lai/chuyển khoản (KHÔNG phụ thuộc status DANGER/WARNING/SAFE). Với nội dung khác (không phải ảnh biên lai/chuyển khoản) thì để null:
+  {
+    "show": true,
+    "message_1": "Mặc dù bức ảnh này trông hoàn toàn bình thường, ba mẹ tuyệt đối chưa giao hàng hay chuyển tiền vội nhé ạ.",
+    "message_2": "Nguyên tắc vàng: Ba mẹ hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
+  }
 
 Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào khác ngoài JSON:
 {
@@ -64,7 +68,12 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
   "reminders": ["Không chuyển tiền", "Không cung cấp thông tin cá nhân", "Không bấm vào đường link lạ"],
   "action": { "label": "Gọi tổng đài chính thức", "phone": "1900xxxx" } hoặc null,
   "important_notes": ["Câu giải thích dài nếu cần"],
-  "official_hotline": "số hotline chính thức nếu nhận diện được, hoặc null"
+  "official_hotline": "số hotline chính thức nếu nhận diện được, hoặc null",
+  "financial_reminder": {
+    "show": true,
+    "message_1": "Mặc dù bức ảnh này trông hoàn toàn bình thường, ba mẹ tuyệt đối chưa giao hàng hay chuyển tiền vội nhé ạ.",
+    "message_2": "Nguyên tắc vàng: Ba mẹ hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
+  } hoặc null
 }"""
 
         fun getResolvedSystemPrompt(): String {

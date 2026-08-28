@@ -11,6 +11,13 @@ enum class ScamStatus {
 }
 
 @JsonClass(generateAdapter = true)
+data class FinancialReminder(
+    @param:Json(name = "show") val show: Boolean = false,
+    @param:Json(name = "message_1") val message1: String? = null,
+    @param:Json(name = "message_2") val message2: String? = null
+)
+
+@JsonClass(generateAdapter = true)
 data class ActionItem(
     @param:Json(name = "label") val label: String? = null,
     @param:Json(name = "phone") val phone: String? = null
@@ -25,6 +32,7 @@ data class ScamAnalysisResult(
     @param:Json(name = "action") val action: ActionItem? = null,
     @param:Json(name = "important_notes") val importantNotes: List<String> = emptyList(),
     @param:Json(name = "official_hotline") val officialHotline: String? = null,
+    @param:Json(name = "financial_reminder") val financialReminder: FinancialReminder? = null,
     val rawJson: String = ""
 ) {
     val scamStatus: ScamStatus

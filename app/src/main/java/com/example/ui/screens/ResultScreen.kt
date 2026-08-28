@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
@@ -132,12 +133,17 @@ fun ResultScreen(
     val ttsHelper = remember { TextToSpeechHelper(context) }
     val isSpeaking by ttsHelper.isSpeaking.collectAsStateWithLifecycle()
 
-    // Prepare speech text from opening_message, signals, reminders, important_notes
+    // Prepare speech text from opening_message, signals, reminders, important_notes, financial_reminder
     val textToRead = remember(result) {
         buildString {
             if (result.openingMessage.isNotBlank()) {
                 append(result.openingMessage)
                 append(". ")
+            }
+            if (result.financialReminder?.show == true) {
+                append("Lưu ý tài chính: ")
+                result.financialReminder.message1?.let { append("$it ") }
+                result.financialReminder.message2?.let { append("$it ") }
             }
             if (result.signals.isNotEmpty()) {
                 append("Các dấu hiệu chính: ")
@@ -395,6 +401,83 @@ fun ResultScreen(
                     fontWeight = FontWeight.Black,
                     color = statusTextColor
                 )
+            }
+        }
+
+        // ==========================================
+        // KHỐI LƯU Ý TÀI CHÍNH (NẾU CÓ CHO ẢNH BIÊN LAI / CHUYỂN KHOẢN)
+        // Hiển thị màu xanh dương trung tính, luôn hiện bất kể status
+        // ==========================================
+        if (result.financialReminder?.show == true) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_financial_reminder"),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = OceanPrimaryContainer.copy(alpha = 0.6f)),
+                border = CardDefaults.outlinedCardBorder().copy(
+                    width = 1.2.dp,
+                    brush = SolidColor(OceanPrimary.copy(alpha = 0.45f))
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(OceanPrimary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalance,
+                                contentDescription = null,
+                                tint = OceanPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Lưu ý tài chính quan trọng:",
+                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = OceanPrimary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val msg1 = result.financialReminder.message1
+                        ?: "Mặc dù bức ảnh này trông hoàn toàn bình thường, ba mẹ tuyệt đối chưa giao hàng hay chuyển tiền vội nhé ạ."
+                    val msg2 = result.financialReminder.message2
+                        ?: "Nguyên tắc vàng: Ba mẹ hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
+
+                    Text(
+                        text = msg1,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 13.5.sp,
+                            lineHeight = 19.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = TextHighContrast
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = msg2,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 13.5.sp,
+                            lineHeight = 19.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = OceanPrimary
+                    )
+                }
             }
         }
 

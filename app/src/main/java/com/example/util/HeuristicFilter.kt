@@ -57,11 +57,30 @@ object HeuristicFilter {
     )
 
     private val URGENCY_PATTERNS = listOf(
-        Pattern.compile("(trong|trước|truoc)\\s*\\d+\\s*(giờ|tiếng|h|phút|ngày)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("(trong|trước|truoc)\\s*\\d+\\s*(giờ|tiếng|h|phút)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("ngay\\s+lập\\s+tức|ngay\\s+lap\\s+tuc", Pattern.CASE_INSENSITIVE),
         Pattern.compile("khẩn\\s+cấp|khan\\s+cap", Pattern.CASE_INSENSITIVE),
         Pattern.compile("hết\\s+hạn\\s+trong|het\\s+han\\s+trong", Pattern.CASE_INSENSITIVE),
         Pattern.compile("trước\\s+24h|truoc\\s+24h", Pattern.CASE_INSENSITIVE)
+    )
+
+    // Các từ khóa chỉ hậu quả đe dọa cụ thể (mất tiền, khóa tài khoản, mất quyền lợi, phạt, đình chỉ)
+    private val THREAT_CONSEQUENCES = listOf(
+        "khóa tài khoản", "khoa tai khoan", "tài khoản bị khóa", "tai khoan bi khoa",
+        "tạm khóa", "tam khoa", "phong tỏa", "phong toa", "ngừng dịch vụ", "ngung dich vu",
+        "phạt nguội", "phat nguoi", "xử phạt", "xu phat", "bị phạt", "bi phat",
+        "truy cứu", "truy cuu", "khởi tố", "khoi to", "hầu tòa", "hau toa",
+        "mất quyền lợi", "mat quyen loi", "mất tiền", "mat tien", "trừ tiền", "tru tien",
+        "cưỡng chế", "cuong che", "hủy dịch vụ", "huy dich vu"
+    )
+
+    // Các từ khóa yêu cầu hành động tài chính hoặc cung cấp thông tin cá nhân
+    private val ACTION_REQUIREMENTS = listOf(
+        "chuyển khoản", "chuyen khoan", "chuyển tiền", "chuyen tien", "nạp tiền", "nap tien",
+        "thanh toán", "thanh toan", "nộp phạt", "nop phat", "mã otp", "ma otp",
+        "mật khẩu", "mat khau", "mã xác thực", "ma xac thuc", "cung cấp cccd", "cung cap cccd",
+        "cung cấp thông tin", "cung cap thong tin", "xác thực thông tin", "xac thuc thong tin",
+        "nhập thông tin", "nhap thong tin", "số thẻ", "so the", "đăng nhập", "dang nhap"
     )
 
     /**
@@ -95,14 +114,28 @@ object HeuristicFilter {
             }
         }
 
-        // 3. Kiểm tra cú pháp hối thúc thời gian
+        // 3. Kiểm tra cú pháp hối thúc thời gian:
+        // CHỈ gắn cờ khi THỎA MÃN CẢ 2 ĐIỀU KIỆN:
+        // (a) Có hậu quả đe dọa cụ thể đi kèm (mất tiền, khóa tài khoản, mất quyền lợi, phạt)
+        // VÀ
+        // (b) Có yêu cầu hành động tài chính hoặc cung cấp thông tin cá nhân
+        var hasUrgencyPattern = false
         for (pattern in URGENCY_PATTERNS) {
             if (pattern.matcher(normalizedBody).find()) {
-                val urgencySignal = "Tạo áp lực thời gian gấp gáp"
+                hasUrgencyPattern = true
+                break
+            }
+        }
+
+        if (hasUrgencyPattern) {
+            val hasThreat = THREAT_CONSEQUENCES.any { normalizedBody.contains(it) }
+            val hasActionReq = ACTION_REQUIREMENTS.any { normalizedBody.contains(it) }
+
+            if (hasThreat && hasActionReq) {
+                val urgencySignal = "Tạo áp lực thời gian kèm đe dọa hậu quả nghiêm trọng"
                 if (!matchedSignals.contains(urgencySignal)) {
                     matchedSignals.add(urgencySignal)
                 }
-                break
             }
         }
 

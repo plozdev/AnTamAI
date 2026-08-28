@@ -103,8 +103,24 @@ import com.example.ui.theme.WarningAmber
 import com.example.ui.theme.WarningBorder
 import com.example.ui.theme.WarningContainer
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+
+private fun formatMessageDate(timestamp: Long): String {
+    val date = Date(timestamp)
+    val now = Calendar.getInstance()
+    val msgCal = Calendar.getInstance().apply { time = date }
+    return if (now.get(Calendar.YEAR) == msgCal.get(Calendar.YEAR) &&
+        now.get(Calendar.DAY_OF_YEAR) == msgCal.get(Calendar.DAY_OF_YEAR)
+    ) {
+        SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
+    } else if (now.get(Calendar.YEAR) == msgCal.get(Calendar.YEAR)) {
+        SimpleDateFormat("dd/MM", Locale.getDefault()).format(date)
+    } else {
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date)
+    }
+}
 
 @Composable
 fun SmsInboxScreen(
@@ -732,30 +748,14 @@ private fun HistoryItemCard(
     onDelete: () -> Unit
 ) {
     val statusUpper = item.status.uppercase()
-    val (statusLabel, statusColor, statusBgColor, statusBorderColor) = when {
-        statusUpper.contains("DANGER") -> Quad(
-            "LỪA ĐẢO",
-            DangerRed,
-            DangerContainer,
-            DangerBorder
-        )
-        statusUpper.contains("WARNING") -> Quad(
-            "CẦN THẬN TRỌNG",
-            WarningAmber,
-            WarningContainer,
-            WarningBorder
-        )
-        else -> Quad(
-            "AN TOÀN",
-            SafeGreen,
-            SafeContainer,
-            SafeBorder
-        )
+    val statusDotColor = when {
+        statusUpper.contains("DANGER") -> DangerRed
+        statusUpper.contains("WARNING") -> WarningAmber
+        else -> SafeGreen
     }
 
-    val formattedDate = remember(item.timestamp) {
-        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        sdf.format(Date(item.timestamp))
+    val formattedTime = remember(item.timestamp) {
+        formatMessageDate(item.timestamp)
     }
 
     Card(
@@ -763,24 +763,24 @@ private fun HistoryItemCard(
             .fillMaxWidth()
             .clickable { onClick() }
             .testTag("history_item_${item.id}"),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = LightSurface),
         border = CardDefaults.outlinedCardBorder().copy(
             width = 1.dp,
             brush = SolidColor(LightOutline)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .size(40.dp)
+                    .clip(CircleShape)
                     .background(if (item.contentType == "IMAGE") OceanPrimaryContainer else LightSurfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -795,60 +795,57 @@ private fun HistoryItemCard(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(statusBgColor)
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = statusLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = statusColor
-                        )
-                    }
-
-                    Text(
-                        text = formattedDate,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = TextSubtle
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
+                Text(
+                    text = if (item.contentType == "IMAGE") "Kiểm tra ảnh / hóa đơn" else "Kiểm tra tin nhắn",
+                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = TextHighContrast,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = item.contentPreview,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp
-                    ),
-                    color = TextHighContrast,
-                    maxLines = 2,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                    color = TextMediumContrast,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(32.dp)
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Xóa mục này",
-                    tint = TextSubtle,
-                    modifier = Modifier.size(16.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(statusDotColor)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = formattedTime,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = TextSubtle
+                    )
+                }
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(26.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Xóa mục này",
+                        tint = TextSubtle,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
             }
         }
     }
@@ -860,9 +857,14 @@ private fun SmsItemCard(
     onClick: () -> Unit
 ) {
     val isSuspicious = sms.heuristicResult.needsScrutiny
-    val formattedDate = remember(sms.date) {
-        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        sdf.format(Date(sms.date))
+    val formattedTime = remember(sms.date) {
+        formatMessageDate(sms.date)
+    }
+
+    val initialLetter = remember(sms.address) {
+        val trimmed = sms.address.trim()
+        val firstChar = trimmed.firstOrNull { it.isLetter() } ?: trimmed.firstOrNull { it.isDigit() }
+        firstChar?.uppercaseChar()?.toString()
     }
 
     Card(
@@ -871,118 +873,93 @@ private fun SmsItemCard(
             .clickable { onClick() }
             .testTag("sms_card_${sms.id}"),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSuspicious) WarningContainer.copy(alpha = 0.35f) else LightSurface
-        ),
+        colors = CardDefaults.cardColors(containerColor = LightSurface),
         border = CardDefaults.outlinedCardBorder().copy(
             width = 1.dp,
-            brush = SolidColor(if (isSuspicious) WarningBorder else LightOutline)
+            brush = SolidColor(LightOutline)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(OceanPrimaryContainer),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(if (isSuspicious) WarningAmber.copy(alpha = 0.2f) else OceanPrimaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isSuspicious) Icons.Default.Warning else Icons.Default.Person,
-                            contentDescription = null,
-                            tint = if (isSuspicious) WarningAmber else OceanPrimary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
+                if (!initialLetter.isNullOrBlank()) {
                     Text(
-                        text = sms.address,
-                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                        text = initialLetter,
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
                         fontWeight = FontWeight.Bold,
-                        color = TextHighContrast,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        color = OceanPrimary
                     )
-                }
-
-                if (isSuspicious) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(WarningAmber.copy(alpha = 0.15f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "⚠️ Cần chú ý",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = WarningAmber
-                        )
-                    }
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = OceanPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-            Text(
-                text = sms.body,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp
-                ),
-                color = TextMediumContrast,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            Column(
+                modifier = Modifier.weight(1f)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.AccessTime,
-                        contentDescription = null,
-                        tint = TextSubtle,
-                        modifier = Modifier.size(12.dp)
+                Text(
+                    text = sms.address,
+                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = TextHighContrast,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = sms.body,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                    color = TextMediumContrast,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = formattedTime,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                    color = TextSubtle
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                if (isSuspicious) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(WarningAmber)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = formattedDate,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = TextSubtle
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(SafeGreen.copy(alpha = 0.4f))
                     )
                 }
-
-                Text(
-                    text = "Xem chi tiết →",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = OceanPrimary
-                )
             }
         }
     }
