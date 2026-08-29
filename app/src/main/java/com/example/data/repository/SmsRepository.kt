@@ -10,21 +10,23 @@ import com.example.data.local.AppDatabase
 import com.example.data.local.SmsEntity
 import com.example.data.model.HeuristicResult
 import com.example.data.model.SmsMessage
+import com.example.util.AppConstants
 import com.example.util.HeuristicFilter
 import com.example.worker.SmsAnalysisWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
-class SmsRepository(private val context: Context) {
+class SmsRepository(private val context: Context) : ISmsRepository {
 
-    private val db = AppDatabase.getInstance(context)
-    private val smsDao = db.smsDao()
+    private val database = AppDatabase.getInstance(context)
+    private val smsDao = database.smsDao()
 
-    fun getAllSmsFlow(): Flow<List<SmsEntity>> = smsDao.getAllSms()
+    override fun getAllSmsFlow(): Flow<List<SmsEntity>> = smsDao.getAllSms()
 
-    suspend fun syncInboxMessages(limit: Int = 100): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun syncInboxMessages(limit: Int): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val rawMessages = mutableListOf<SmsMessage>()
             val uri: Uri = Telephony.Sms.Inbox.CONTENT_URI
@@ -43,18 +45,18 @@ class SmsRepository(private val context: Context) {
                 "${Telephony.Sms.DATE} DESC"
             )
 
-            cursor?.use {
-                val idIndex = it.getColumnIndex(Telephony.Sms._ID)
-                val addressIndex = it.getColumnIndex(Telephony.Sms.ADDRESS)
-                val bodyIndex = it.getColumnIndex(Telephony.Sms.BODY)
-                val dateIndex = it.getColumnIndex(Telephony.Sms.DATE)
+            cursor?.use { activeCursor ->
+                val idIndex = activeCursor.getColumnIndex(Telephony.Sms._ID)
+                val addressIndex = activeCursor.getColumnIndex(Telephony.Sms.ADDRESS)
+                val bodyIndex = activeCursor.getColumnIndex(Telephony.Sms.BODY)
+                val dateIndex = activeCursor.getColumnIndex(Telephony.Sms.DATE)
 
                 var count = 0
-                while (it.moveToNext() && count < limit) {
-                    val id = if (idIndex != -1) it.getLong(idIndex) else count.toLong()
-                    val address = if (addressIndex != -1) it.getString(addressIndex) ?: "Không rõ" else "Không rõ"
-                    val body = if (bodyIndex != -1) it.getString(bodyIndex)?.trim() ?: "" else ""
-                    val date = if (dateIndex != -1) it.getLong(dateIndex) else System.currentTimeMillis()
+                while (activeCursor.moveToNext() && count < limit) {
+                    val id = if (idIndex != -1) activeCursor.getLong(idIndex) else count.toLong()
+                    val address = if (addressIndex != -1) activeCursor.getString(addressIndex) ?: "Không rõ" else "Không rõ"
+                    val body = if (bodyIndex != -1) activeCursor.getString(bodyIndex)?.trim() ?: "" else ""
+                    val date = if (dateIndex != -1) activeCursor.getLong(dateIndex) else System.currentTimeMillis()
 
                     if (body.isNotBlank()) {
                         val heuristicResult = HeuristicFilter.analyze(body)
@@ -74,16 +76,16 @@ class SmsRepository(private val context: Context) {
 
             // Deduplication logic
             val dedupedMessages = mutableListOf<SmsMessage>()
-            for (msg in rawMessages) {
+            for (message in rawMessages) {
                 val isDuplicate = dedupedMessages.any { existing ->
-                    existing.id == msg.id || (
-                        existing.address.equals(msg.address, ignoreCase = true) &&
-                        existing.body == msg.body &&
-                        abs(existing.date - msg.date) < 10_000L
+                    existing.id == message.id || (
+                        existing.address.equals(message.address, ignoreCase = true) &&
+                        existing.body == message.body &&
+                        abs(existing.date - message.date) < 10_000L
                     )
                 }
                 if (!isDuplicate) {
-                    dedupedMessages.add(msg)
+                    dedupedMessages.add(message)
                 }
             }
 
@@ -92,9 +94,9 @@ class SmsRepository(private val context: Context) {
                 val existing = smsDao.findSmsByContent(msg.address, msg.body)
                 if (existing == null) {
                     val needsScrutiny = msg.heuristicResult.needsScrutiny
-                    val signalsJoined = msg.heuristicResult.matchedSignals.joinToString("|||")
+                    val signalsJoined = msg.heuristicResult.matchedSignals.joinToString(AppConstants.SIGNAL_SEPARATOR)
 
-                    val initialStatus = if (needsScrutiny) "ANALYZING" else "SAFE"
+                    val initialStatus = if (needsScrutiny) AppConstants.STATUS_ANALYZING else AppConstants.STATUS_SAFE
                     val initialOpening = if (needsScrutiny) "Đang phân tích bảo mật..." else "Tin nhắn không có dấu hiệu đáng ngờ."
 
                     val newEntity = SmsEntity(
@@ -125,8 +127,8 @@ class SmsRepository(private val context: Context) {
                             .setInputData(inputData)
                             .setBackoffCriteria(
                                 androidx.work.BackoffPolicy.EXPONENTIAL,
-                                30,
-                                java.util.concurrent.TimeUnit.SECONDS
+                                AppConstants.WORKER_BACKOFF_SECONDS,
+                                TimeUnit.SECONDS
                             )
                             .build()
 
@@ -143,68 +145,56 @@ class SmsRepository(private val context: Context) {
         }
     }
 
-    suspend fun setDismissed(id: Long, isDismissed: Boolean) = withContext(Dispatchers.IO) {
+    override suspend fun setDismissed(id: Long, isDismissed: Boolean) = withContext(Dispatchers.IO) {
         smsDao.setDismissed(id, isDismissed)
     }
 
-    suspend fun dismissAllSuspicious() = withContext(Dispatchers.IO) {
+    override suspend fun dismissAllSuspicious() = withContext(Dispatchers.IO) {
         smsDao.dismissAllSuspicious()
     }
 
-    suspend fun getInboxMessages(limit: Int = 120): Result<List<SmsMessage>> = withContext(Dispatchers.IO) {
-        // Sync first, then map from Room or return direct
-        syncInboxMessages(limit)
+    override suspend fun getInboxMessages(limit: Int): Result<List<SmsMessage>> = withContext(Dispatchers.IO) {
+        val syncResult = syncInboxMessages(limit)
+        if (syncResult.isFailure) {
+            return@withContext Result.failure(syncResult.exceptionOrNull() ?: Exception("Lỗi đồng bộ SMS"))
+        }
         try {
-            val uri: Uri = Telephony.Sms.Inbox.CONTENT_URI
-            val projection = arrayOf(
-                Telephony.Sms._ID,
-                Telephony.Sms.ADDRESS,
-                Telephony.Sms.BODY,
-                Telephony.Sms.DATE
-            )
-
-            val cursor = context.contentResolver.query(
-                uri,
-                projection,
-                null,
-                null,
-                "${Telephony.Sms.DATE} DESC"
-            )
-
-            val rawMessages = mutableListOf<SmsMessage>()
-            cursor?.use {
-                val idIndex = it.getColumnIndex(Telephony.Sms._ID)
-                val addressIndex = it.getColumnIndex(Telephony.Sms.ADDRESS)
-                val bodyIndex = it.getColumnIndex(Telephony.Sms.BODY)
-                val dateIndex = it.getColumnIndex(Telephony.Sms.DATE)
-
-                var count = 0
-                while (it.moveToNext() && count < limit) {
-                    val id = if (idIndex != -1) it.getLong(idIndex) else count.toLong()
-                    val address = if (addressIndex != -1) it.getString(addressIndex) ?: "Không rõ" else "Không rõ"
-                    val body = if (bodyIndex != -1) it.getString(bodyIndex)?.trim() ?: "" else ""
-                    val date = if (dateIndex != -1) it.getLong(dateIndex) else System.currentTimeMillis()
-
-                    if (body.isNotBlank()) {
-                        val heuristicResult = HeuristicFilter.analyze(body)
-                        rawMessages.add(
-                            SmsMessage(
-                                id = id,
-                                address = address.trim(),
-                                body = body,
-                                date = date,
-                                heuristicResult = heuristicResult
-                            )
-                        )
-                        count++
-                    }
-                }
+            val entities = smsDao.getAllSmsDirect()
+            val mapped = entities.map { entity ->
+                SmsMessage(
+                    id = entity.smsId,
+                    address = entity.address,
+                    body = entity.body,
+                    date = entity.timestamp,
+                    heuristicResult = HeuristicResult(
+                        needsScrutiny = entity.heuristicNeedsScrutiny,
+                        matchedSignals = if (entity.heuristicSignals.isNotBlank()) entity.heuristicSignals.split(AppConstants.SIGNAL_SEPARATOR) else emptyList()
+                    )
+                )
             }
-
-            Result.success(rawMessages)
+            Result.success(mapped)
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override suspend fun insertIncomingSms(sender: String, body: String, timestamp: Long): Long = withContext(Dispatchers.IO) {
+        val newSms = SmsEntity(
+            smsId = 0,
+            address = sender,
+            body = body,
+            timestamp = timestamp,
+            heuristicNeedsScrutiny = true,
+            heuristicSignals = "",
+            status = AppConstants.STATUS_ANALYZING,
+            openingMessage = "Đang kiểm tra an toàn...",
+            resultJson = ""
+        )
+        smsDao.insertSms(newSms)
+    }
+
+    override suspend fun updateAnalysisResult(id: Long, status: String, openingMessage: String, resultJson: String) = withContext(Dispatchers.IO) {
+        smsDao.updateAnalysisResult(id, status, openingMessage, resultJson)
     }
 }
 

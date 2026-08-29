@@ -15,11 +15,20 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class ScamAnalysisRepository {
+class ScamAnalysisRepository : IScamAnalysisRepository {
 
     companion object {
-        // Global rate limiter: maximum 2 concurrent Gemini API requests across entire app
-        val geminiRateLimiter = Semaphore(2)
+        @Volatile
+        private var instance: ScamAnalysisRepository? = null
+
+        fun getInstance(): ScamAnalysisRepository {
+            return instance ?: synchronized(this) {
+                instance ?: ScamAnalysisRepository().also { instance = it }
+            }
+        }
+
+        // Global rate limiter: maximum concurrent Gemini API requests across entire app
+        val geminiRateLimiter = Semaphore(com.example.util.AppConstants.GEMINI_MAX_CONCURRENT_REQUESTS)
 
         // Models: Flash-Lite for fast SMS scanning (Tab 1), Flash for manual check & multimodal images (Tab 2)
         const val MODEL_FLASH_LITE = "gemini-3.1-flash-lite-preview"
@@ -89,7 +98,7 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
             val currentDateStr = try {
                 LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
             } catch (_: Exception) {
-                "28/08/2026"
+                java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date())
             }
             return SYSTEM_PROMPT_TEMPLATE.replace("{CURRENT_DATE}", currentDateStr)
         }
@@ -246,30 +255,11 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         val rawText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
             ?: return Result.failure(IllegalStateException(response.error?.message ?: "Không nhận được phản hồi từ AI"))
 
-        val cleanedJson = cleanJsonString(rawText)
-        return try {
-            val adapter = ApiClient.moshi.adapter(ScamAnalysisResult::class.java)
-            val parsed = adapter.fromJson(cleanedJson)
-            if (parsed != null) {
-                Result.success(parsed.copy(rawJson = cleanedJson))
-            } else {
-                Result.failure(IllegalStateException("Không thể đọc định dạng dữ liệu phản hồi"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
+        val parsed = com.example.util.JsonUtils.parseScamAnalysisResult(rawText)
+        return if (parsed != null) {
+            Result.success(parsed)
+        } else {
+            Result.failure(IllegalStateException("Không thể đọc định dạng dữ liệu phản hồi"))
         }
-    }
-
-    private fun cleanJsonString(raw: String): String {
-        var text = raw.trim()
-        if (text.startsWith("```json")) {
-            text = text.removePrefix("```json").trim()
-        } else if (text.startsWith("```")) {
-            text = text.removePrefix("```").trim()
-        }
-        if (text.endsWith("```")) {
-            text = text.removeSuffix("```").trim()
-        }
-        return text
     }
 }

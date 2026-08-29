@@ -13,6 +13,9 @@ interface SmsDao {
     @Query("SELECT * FROM sms_entities ORDER BY timestamp DESC")
     fun getAllSms(): Flow<List<SmsEntity>>
 
+    @Query("SELECT * FROM sms_entities ORDER BY timestamp DESC")
+    suspend fun getAllSmsDirect(): List<SmsEntity>
+
     @Query("SELECT * FROM sms_entities WHERE id = :id LIMIT 1")
     suspend fun getSmsById(id: Long): SmsEntity?
 

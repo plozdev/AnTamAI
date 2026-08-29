@@ -77,3 +77,33 @@ class TextToSpeechHelper(private val context: Context) : TextToSpeech.OnInitList
         _isSpeaking.value = false
     }
 }
+
+fun com.example.data.model.ScamAnalysisResult.toSpeechText(): String = buildString {
+    if (openingMessage.isNotBlank()) {
+        append(openingMessage)
+        append(". ")
+    }
+    if (financialReminder?.show == true) {
+        append("Lưu ý tài chính: ")
+        financialReminder.message1?.let { append("$it ") }
+        financialReminder.message2?.let { append("$it ") }
+    }
+    if (signals.isNotEmpty()) {
+        append("Các dấu hiệu chính: ")
+        signals.forEachIndexed { i, sig ->
+            append("Dấu hiệu ${i + 1}: $sig. ")
+        }
+    }
+    if (reminders.isNotEmpty()) {
+        append("Lời nhắc an toàn: ")
+        reminders.forEach { reminder ->
+            append("$reminder. ")
+        }
+    }
+    if (importantNotes.isNotEmpty()) {
+        append("Lưu ý quan trọng: ")
+        importantNotes.forEach { note ->
+            append("$note. ")
+        }
+    }
+}

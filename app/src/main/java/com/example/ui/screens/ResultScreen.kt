@@ -100,6 +100,7 @@ import com.example.ui.theme.WarningAmber
 import com.example.ui.theme.WarningBorder
 import com.example.ui.theme.WarningContainer
 import com.example.util.TextToSpeechHelper
+import com.example.util.toSpeechText
 
 @Composable
 fun ResultScreen(
@@ -116,55 +117,26 @@ fun ResultScreen(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
-    // Log raw JSON for developer inspection
+    // Log raw JSON for developer inspection in debug mode only
     LaunchedEffect(result) {
-        Log.d("AnTamAI", "=== GEMINI ANALYSIS RESULT ===")
-        Log.d("AnTamAI", "Status: ${result.status}")
-        Log.d("AnTamAI", "Opening: ${result.openingMessage}")
-        Log.d("AnTamAI", "Signals: ${result.signals}")
-        Log.d("AnTamAI", "Reminders: ${result.reminders}")
-        Log.d("AnTamAI", "Action: ${result.action}")
-        Log.d("AnTamAI", "Important Notes: ${result.importantNotes}")
-        Log.d("AnTamAI", "Hotline: ${result.officialHotline}")
-        Log.d("AnTamAI", "Raw JSON: ${result.rawJson}")
+        if (com.example.BuildConfig.DEBUG) {
+            Log.d("AnTamAI", "=== GEMINI ANALYSIS RESULT ===")
+            Log.d("AnTamAI", "Status: ${result.status}")
+            Log.d("AnTamAI", "Opening: ${result.openingMessage}")
+            Log.d("AnTamAI", "Signals: ${result.signals}")
+            Log.d("AnTamAI", "Reminders: ${result.reminders}")
+            Log.d("AnTamAI", "Action: ${result.action}")
+            Log.d("AnTamAI", "Important Notes: ${result.importantNotes}")
+            Log.d("AnTamAI", "Hotline: ${result.officialHotline}")
+        }
     }
 
     // Text To Speech Helper initialization and lifecycle
     val ttsHelper = remember { TextToSpeechHelper(context) }
     val isSpeaking by ttsHelper.isSpeaking.collectAsStateWithLifecycle()
 
-    // Prepare speech text from opening_message, signals, reminders, important_notes, financial_reminder
-    val textToRead = remember(result) {
-        buildString {
-            if (result.openingMessage.isNotBlank()) {
-                append(result.openingMessage)
-                append(". ")
-            }
-            if (result.financialReminder?.show == true) {
-                append("Lưu ý tài chính: ")
-                result.financialReminder.message1?.let { append("$it ") }
-                result.financialReminder.message2?.let { append("$it ") }
-            }
-            if (result.signals.isNotEmpty()) {
-                append("Các dấu hiệu chính: ")
-                result.signals.forEachIndexed { i, sig ->
-                    append("Dấu hiệu ${i + 1}: $sig. ")
-                }
-            }
-            if (result.reminders.isNotEmpty()) {
-                append("Lời nhắc an toàn: ")
-                result.reminders.forEach { reminder ->
-                    append("$reminder. ")
-                }
-            }
-            if (result.importantNotes.isNotEmpty()) {
-                append("Lưu ý quan trọng: ")
-                result.importantNotes.forEach { note ->
-                    append("$note. ")
-                }
-            }
-        }
-    }
+    // Prepare speech text from ScamAnalysisResult extension
+    val textToRead = remember(result) { result.toSpeechText() }
 
     // Auto-read on launch if setting enabled
     LaunchedEffect(Unit) {

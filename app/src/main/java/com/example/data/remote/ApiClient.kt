@@ -16,11 +16,15 @@ object ApiClient {
         .build()
 
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(com.example.util.AppConstants.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(com.example.util.AppConstants.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(com.example.util.AppConstants.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            level = if (com.example.BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BASIC
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         })
         .build()
 

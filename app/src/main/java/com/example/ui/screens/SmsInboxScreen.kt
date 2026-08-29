@@ -68,16 +68,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -96,7 +91,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
-import com.example.data.local.CheckHistoryEntity
 import com.example.data.local.SmsEntity
 import com.example.data.model.SmsMessage
 import com.example.ui.components.AppTabHeader
@@ -147,21 +141,15 @@ fun SmsInboxScreen(
     fallbackMessages: List<SmsMessage> = emptyList(),
     isLoading: Boolean,
     errorMessage: String?,
-    checkHistory: List<CheckHistoryEntity> = emptyList(),
     autoScanEnabled: Boolean = true,
     onRefresh: () -> Unit,
     onOpenSmsItem: (SmsEntity) -> Unit = {},
     onDismissSms: (Long) -> Unit = {},
     onDismissAllSuspicious: () -> Unit = {},
-    onOpenHistoryItem: (CheckHistoryEntity) -> Unit = {},
-    onDeleteHistoryItem: (Long) -> Unit = {},
-    onClearAllHistory: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-
-    var selectedSubTabIndex by remember { mutableIntStateOf(0) }
 
     var hasReadSmsPermission by remember {
         mutableStateOf(
@@ -264,108 +252,41 @@ fun SmsInboxScreen(
     ) {
         // UNIFIED HEADER BAR
         AppTabHeader(
-            icon = Icons.Default.History,
+            icon = Icons.Default.Message,
             title = "Nhật ký an toàn",
-            subtitle = "Lịch sử quét SMS & kiểm tra thủ công",
+            subtitle = "Lịch sử nhận và quét tin nhắn SMS",
             trailingAction = {
-                if (selectedSubTabIndex == 0) {
-                    IconButton(
-                        onClick = {
-                            if (hasReadSmsPermission) {
-                                onRefresh()
-                            } else {
-                                showPermissionExplanationDialog = true
-                            }
-                        },
-                        modifier = Modifier.testTag("button_refresh_sms")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Tải lại",
-                            tint = OceanPrimary
-                        )
-                    }
+                IconButton(
+                    onClick = {
+                        if (hasReadSmsPermission) {
+                            onRefresh()
+                        } else {
+                            showPermissionExplanationDialog = true
+                        }
+                    },
+                    modifier = Modifier.testTag("button_refresh_sms")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Tải lại",
+                        tint = OceanPrimary
+                    )
                 }
             }
         )
 
-        // SEGMENTED CONTROL: "SMS" | "Đã kiểm tra tay"
-        TabRow(
-            selectedTabIndex = selectedSubTabIndex,
-            containerColor = LightSurfaceVariant,
-            contentColor = OceanPrimary,
-            indicator = { tabPositions ->
-                TabRowDefaults.SecondaryIndicator(
-                    Modifier.tabIndicatorOffset(tabPositions[selectedSubTabIndex]),
-                    height = 3.dp,
-                    color = OceanPrimary
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .clip(RoundedCornerShape(12.dp))
-        ) {
-            Tab(
-                selected = selectedSubTabIndex == 0,
-                onClick = { selectedSubTabIndex = 0 },
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Message,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = if (selectedSubTabIndex == 0) OceanPrimary else TextSubtle
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "SMS (${displayedEntities.size})",
-                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                            fontWeight = if (selectedSubTabIndex == 0) FontWeight.Bold else FontWeight.Medium,
-                            color = if (selectedSubTabIndex == 0) OceanPrimary else TextMediumContrast
-                        )
-                    }
-                },
-                modifier = Modifier.testTag("tab_sub_sms")
-            )
-            Tab(
-                selected = selectedSubTabIndex == 1,
-                onClick = { selectedSubTabIndex = 1 },
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = if (selectedSubTabIndex == 1) OceanPrimary else TextSubtle
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Đã kiểm tra tay (${checkHistory.size})",
-                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                            fontWeight = if (selectedSubTabIndex == 1) FontWeight.Bold else FontWeight.Medium,
-                            color = if (selectedSubTabIndex == 1) OceanPrimary else TextMediumContrast
-                        )
-                    }
-                },
-                modifier = Modifier.testTag("tab_sub_manual_history")
-            )
-        }
+        Spacer(modifier = Modifier.height(4.dp))
 
-        Spacer(modifier = Modifier.height(6.dp))
-
-        if (selectedSubTabIndex == 0) {
-            // SUB-TAB 1: SMS LIST
-            if (!hasReadSmsPermission) {
-                // PERMISSION NOT GRANTED VIEW (Educational Rationale Screen)
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
+        if (!hasReadSmsPermission) {
+            // PERMISSION NOT GRANTED VIEW (Educational Rationale Screen)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                     Box(
                         modifier = Modifier
                             .size(76.dp)
@@ -753,107 +674,6 @@ fun SmsInboxScreen(
                                 onDismiss = { onDismissSms(entity.id) }
                             )
                         }
-                    }
-                }
-            }
-        } else {
-            // SUB-TAB 2: ĐÃ KIỂM TRA TAY (MANUAL CHECK HISTORY)
-            if (checkHistory.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(OceanPrimaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = null,
-                            tint = OceanPrimary,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "Chưa có lịch sử kiểm tra",
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = TextHighContrast
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Mỗi khi bạn dán tin nhắn hoặc chụp ảnh kiểm tra lừa đảo tại tab 'Kiểm tra', kết quả sẽ được lưu an toàn tại đây để bạn xem lại bất cứ lúc nào.",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 13.sp,
-                            lineHeight = 19.sp
-                        ),
-                        color = TextSubtle,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("list_manual_check_history"),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "LỊCH SỬ KIỂM TRA GẦN ĐÂY (${checkHistory.size})",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.5.sp
-                                ),
-                                color = TextSubtle
-                            )
-
-                            TextButton(
-                                onClick = onClearAllHistory,
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.DeleteSweep,
-                                    contentDescription = null,
-                                    tint = TextSubtle,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Xóa tất cả",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp),
-                                    color = TextSubtle
-                                )
-                            }
-                        }
-                    }
-
-                    items(checkHistory, key = { it.id }) { item ->
-                        HistoryItemCard(
-                            item = item,
-                            onClick = { onOpenHistoryItem(item) },
-                            onDelete = { onDeleteHistoryItem(item.id) }
-                        )
                     }
                 }
             }
@@ -1309,7 +1129,7 @@ private fun SmsEntityDetailDialog(
 
     val signalsList = remember(entity.heuristicSignals) {
         if (entity.heuristicSignals.isNotBlank()) {
-            entity.heuristicSignals.split("|||").filter { it.isNotBlank() }
+            entity.heuristicSignals.split(com.example.util.AppConstants.SIGNAL_SEPARATOR).filter { it.isNotBlank() }
         } else emptyList()
     }
 
@@ -1567,112 +1387,6 @@ private fun SmsEntityDetailDialog(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HistoryItemCard(
-    item: CheckHistoryEntity,
-    onClick: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val statusUpper = item.status.uppercase()
-    val statusDotColor = when {
-        statusUpper.contains("DANGER") -> DangerRed
-        statusUpper.contains("WARNING") -> WarningAmber
-        else -> SafeGreen
-    }
-
-    val formattedTime = remember(item.timestamp) {
-        formatMessageDate(item.timestamp)
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .testTag("card_history_item_${item.id}"),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = LightSurface),
-        border = CardDefaults.outlinedCardBorder().copy(
-            width = 1.dp,
-            brush = SolidColor(LightOutlineVariant)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(
-                        when {
-                            statusUpper.contains("DANGER") -> DangerContainer
-                            statusUpper.contains("WARNING") -> WarningContainer
-                            else -> SafeContainer
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (item.contentType == "IMAGE") Icons.Default.Image else Icons.Default.TextFields,
-                    contentDescription = null,
-                    tint = statusDotColor,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (item.contentType == "IMAGE") "Kiểm tra ảnh chụp" else "Kiểm tra nội dung text",
-                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = TextHighContrast
-                    )
-                    Text(
-                        text = formattedTime,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = TextSubtle
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Text(
-                    text = item.contentPreview,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = TextMediumContrast,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Xóa",
-                    tint = TextSubtle,
-                    modifier = Modifier.size(16.dp)
-                )
             }
         }
     }

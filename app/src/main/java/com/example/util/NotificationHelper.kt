@@ -68,12 +68,21 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val publicNotification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle(if (isDanger) "🚨 Cảnh báo an toàn SMS" else "⚠️ Lưu ý tin nhắn SMS")
+            .setContentText("Phát hiện nội dung đáng ngờ. Mở khóa thiết bị để xem hướng dẫn an toàn.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(title)
             .setContentText(displayMessage)
-            .setStyle(NotificationCompat.BigTextStyle().bigText("$displayMessage\n\nNội dung tin nhắn: \"$body\""))
+            .setStyle(NotificationCompat.BigTextStyle().bigText("$displayMessage\n\nTin nhắn từ: $address\nNội dung: \"$body\""))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(publicNotification)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)

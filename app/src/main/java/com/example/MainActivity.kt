@@ -107,7 +107,6 @@ fun MainAppContent(
     val smsMessages by viewModel.smsMessages.collectAsStateWithLifecycle()
     val isSmsLoading by viewModel.isSmsLoading.collectAsStateWithLifecycle()
     val smsError by viewModel.smsError.collectAsStateWithLifecycle()
-    val checkHistory by viewModel.checkHistory.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
 
     // Ensure back press on Result, Settings, Analyzing or Error returns to Home (Messages tab)
@@ -228,15 +227,11 @@ fun MainAppContent(
                                 fallbackMessages = smsMessages,
                                 isLoading = isSmsLoading,
                                 errorMessage = smsError,
-                                checkHistory = checkHistory,
                                 autoScanEnabled = autoScanSms,
                                 onRefresh = { viewModel.loadSmsMessages() },
                                 onOpenSmsItem = { entity -> viewModel.openSmsEntity(entity) },
                                 onDismissSms = { id -> viewModel.dismissSms(id) },
                                 onDismissAllSuspicious = { viewModel.dismissAllSuspicious() },
-                                onOpenHistoryItem = { item -> viewModel.openHistoryItem(item) },
-                                onDeleteHistoryItem = { id -> viewModel.deleteHistoryItem(id) },
-                                onClearAllHistory = { viewModel.clearAllHistory() },
                                 onOpenSettings = { viewModel.selectTab(AppTab.SETTINGS) },
                                 modifier = Modifier.fillMaxSize()
                             )

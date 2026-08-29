@@ -4,12 +4,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
+import android.util.Log
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.example.data.local.AppDatabase
-import com.example.data.local.SmsEntity
 import com.example.data.repository.SettingsRepository
+import com.example.data.repository.SmsRepository
 import com.example.worker.SmsAnalysisWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,8 +20,8 @@ class SmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
 
-        val settingsRepo = SettingsRepository(context)
-        if (!settingsRepo.getAutoScanSms()) {
+        val settingsRepository = SettingsRepository(context)
+        if (!settingsRepository.getAutoScanSms()) {
             return
         }
 
@@ -32,10 +32,10 @@ class SmsReceiver : BroadcastReceiver() {
         val bodyBuilder = StringBuilder()
         var timestamp = System.currentTimeMillis()
 
-        for (msg in messages) {
-            bodyBuilder.append(msg.messageBody ?: "")
-            if (msg.timestampMillis > 0) {
-                timestamp = msg.timestampMillis
+        for (message in messages) {
+            bodyBuilder.append(message.messageBody ?: "")
+            if (message.timestampMillis > 0) {
+                timestamp = message.timestampMillis
             }
         }
         val fullBody = bodyBuilder.toString().trim()
@@ -44,19 +44,12 @@ class SmsReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = AppDatabase.getInstance(context)
-                val newSms = SmsEntity(
-                    smsId = 0,
-                    address = sender,
+                val smsRepository = SmsRepository(context)
+                val insertedId = smsRepository.insertIncomingSms(
+                    sender = sender,
                     body = fullBody,
-                    timestamp = timestamp,
-                    heuristicNeedsScrutiny = true,
-                    heuristicSignals = "",
-                    status = "ANALYZING",
-                    openingMessage = "Đang kiểm tra an toàn...",
-                    resultJson = ""
+                    timestamp = timestamp
                 )
-                val insertedId = db.smsDao().insertSms(newSms)
 
                 val inputData = Data.Builder()
                     .putLong(SmsAnalysisWorker.KEY_SMS_RECORD_ID, insertedId)
@@ -70,13 +63,14 @@ class SmsReceiver : BroadcastReceiver() {
                     .setInputData(inputData)
                     .setBackoffCriteria(
                         androidx.work.BackoffPolicy.EXPONENTIAL,
-                        30,
+                        com.example.util.AppConstants.WORKER_BACKOFF_SECONDS,
                         java.util.concurrent.TimeUnit.SECONDS
                     )
                     .build()
 
                 WorkManager.getInstance(context.applicationContext).enqueue(workRequest)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e("AnTamAI", "Error processing incoming SMS in SmsReceiver", e)
             } finally {
                 pendingResult.finish()
             }
