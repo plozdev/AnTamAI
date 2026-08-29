@@ -47,18 +47,3 @@ val SafeContainer = Color(0xFFF0FDF4)            // Green-50
 val OnSafeContainer = Color(0xFF166534)          // Green-800
 val SafeBorder = Color(0xFFBBF7D0)               // Green-200
 
-// Compatibility aliases
-val LavenderPrimary = OceanPrimary
-val OnLavenderPrimary = OnOceanPrimary
-val LavenderPrimaryContainer = OceanPrimaryContainer
-val OnLavenderContainer = OnOceanPrimaryContainer
-val LavenderSecondary = OceanSecondary
-val OnLavenderSecondary = OnOceanSecondary
-val LavenderSecondaryContainer = OceanSecondaryContainer
-val OnLavenderSecondaryContainer = OnOceanSecondaryContainer
-val DarkBackground = LightBackground
-val DarkSurface = LightSurface
-val DarkSurfaceVariant = LightSurfaceVariant
-val DarkSurfaceCard = LightSurfaceCard
-val DarkOutline = LightOutline
-val DarkOutlineVariant = LightOutlineVariant

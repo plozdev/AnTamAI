@@ -25,6 +25,34 @@ class SmsAnalysisWorker(
         const val KEY_BODY = "key_body"
         const val KEY_TIMESTAMP = "key_timestamp"
         const val KEY_SHOW_NOTIFICATION = "key_show_notification"
+
+        fun enqueue(
+            context: Context,
+            id: Long,
+            address: String,
+            body: String,
+            timestamp: Long,
+            showNotification: Boolean
+        ) {
+            val inputData = androidx.work.Data.Builder()
+                .putLong(KEY_SMS_RECORD_ID, id)
+                .putString(KEY_ADDRESS, address)
+                .putString(KEY_BODY, body)
+                .putLong(KEY_TIMESTAMP, timestamp)
+                .putBoolean(KEY_SHOW_NOTIFICATION, showNotification)
+                .build()
+
+            val workRequest = androidx.work.OneTimeWorkRequestBuilder<SmsAnalysisWorker>()
+                .setInputData(inputData)
+                .setBackoffCriteria(
+                    androidx.work.BackoffPolicy.EXPONENTIAL,
+                    AppConstants.WORKER_BACKOFF_SECONDS,
+                    java.util.concurrent.TimeUnit.SECONDS
+                )
+                .build()
+
+            androidx.work.WorkManager.getInstance(context.applicationContext).enqueue(workRequest)
+        }
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {

@@ -93,6 +93,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.data.local.SmsEntity
 import com.example.data.model.SmsMessage
+import com.example.util.AppConstants
+import com.example.util.SmsAnalysisStatus
 import com.example.ui.components.AppTabHeader
 import com.example.ui.theme.DangerBorder
 import com.example.ui.theme.DangerContainer
@@ -216,11 +218,12 @@ fun SmsInboxScreen(
 
     val unDismissedSuspiciousCount = remember(displayedEntities) {
         displayedEntities.count { entity ->
+            val parsedStatus = SmsAnalysisStatus.fromString(entity.status)
             !entity.isDismissed && (
-                entity.status == "DANGER" ||
-                entity.status == "WARNING" ||
-                entity.status == "ANALYZING" ||
-                entity.status == "RETRYING" ||
+                parsedStatus == SmsAnalysisStatus.DANGER ||
+                parsedStatus == SmsAnalysisStatus.WARNING ||
+                parsedStatus == SmsAnalysisStatus.ANALYZING ||
+                parsedStatus == SmsAnalysisStatus.RETRYING ||
                 entity.heuristicNeedsScrutiny
             )
         }
@@ -231,11 +234,12 @@ fun SmsInboxScreen(
             val matchSearch = searchQuery.isBlank() ||
                 entity.address.contains(searchQuery, ignoreCase = true) ||
                 entity.body.contains(searchQuery, ignoreCase = true)
+            val parsedStatus = SmsAnalysisStatus.fromString(entity.status)
             val isSuspicious = !entity.isDismissed && (
-                entity.status == "DANGER" ||
-                entity.status == "WARNING" ||
-                entity.status == "ANALYZING" ||
-                entity.status == "RETRYING" ||
+                parsedStatus == SmsAnalysisStatus.DANGER ||
+                parsedStatus == SmsAnalysisStatus.WARNING ||
+                parsedStatus == SmsAnalysisStatus.ANALYZING ||
+                parsedStatus == SmsAnalysisStatus.RETRYING ||
                 entity.heuristicNeedsScrutiny
             )
             val matchFilter = !filterOnlySuspicious || isSuspicious
@@ -779,11 +783,11 @@ private fun SmsEntityCard(
     onClick: () -> Unit,
     onDismiss: () -> Unit = {}
 ) {
-    val statusUpper = entity.status.uppercase()
-    val isAnalyzing = statusUpper == "ANALYZING"
-    val isRetrying = statusUpper == "RETRYING"
-    val isDanger = statusUpper == "DANGER"
-    val isWarning = statusUpper == "WARNING" || entity.heuristicNeedsScrutiny
+    val parsedStatus = SmsAnalysisStatus.fromString(entity.status)
+    val isAnalyzing = parsedStatus == SmsAnalysisStatus.ANALYZING
+    val isRetrying = parsedStatus == SmsAnalysisStatus.RETRYING
+    val isDanger = parsedStatus == SmsAnalysisStatus.DANGER
+    val isWarning = parsedStatus == SmsAnalysisStatus.WARNING || entity.heuristicNeedsScrutiny
     val isSuspicious = isDanger || isWarning || isAnalyzing || isRetrying
 
     val (badgeText, badgeColor, badgeBg) = when {
@@ -1116,11 +1120,11 @@ private fun SmsEntityDetailDialog(
     onDismissAlert: () -> Unit = {},
     onViewFullResult: () -> Unit
 ) {
-    val statusUpper = entity.status.uppercase()
-    val isDanger = statusUpper == "DANGER"
-    val isWarning = statusUpper == "WARNING" || entity.heuristicNeedsScrutiny
-    val isAnalyzing = statusUpper == "ANALYZING"
-    val isRetrying = statusUpper == "RETRYING"
+    val parsedStatus = SmsAnalysisStatus.fromString(entity.status)
+    val isDanger = parsedStatus == SmsAnalysisStatus.DANGER
+    val isWarning = parsedStatus == SmsAnalysisStatus.WARNING || entity.heuristicNeedsScrutiny
+    val isAnalyzing = parsedStatus == SmsAnalysisStatus.ANALYZING
+    val isRetrying = parsedStatus == SmsAnalysisStatus.RETRYING
 
     val formattedDate = remember(entity.timestamp) {
         val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())

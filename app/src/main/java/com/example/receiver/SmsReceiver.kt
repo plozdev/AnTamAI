@@ -5,9 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.util.Log
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import com.example.data.repository.SettingsRepository
 import com.example.data.repository.SmsRepository
 import com.example.worker.SmsAnalysisWorker
@@ -51,24 +48,14 @@ class SmsReceiver : BroadcastReceiver() {
                     timestamp = timestamp
                 )
 
-                val inputData = Data.Builder()
-                    .putLong(SmsAnalysisWorker.KEY_SMS_RECORD_ID, insertedId)
-                    .putString(SmsAnalysisWorker.KEY_ADDRESS, sender)
-                    .putString(SmsAnalysisWorker.KEY_BODY, fullBody)
-                    .putLong(SmsAnalysisWorker.KEY_TIMESTAMP, timestamp)
-                    .putBoolean(SmsAnalysisWorker.KEY_SHOW_NOTIFICATION, true)
-                    .build()
-
-                val workRequest = OneTimeWorkRequestBuilder<SmsAnalysisWorker>()
-                    .setInputData(inputData)
-                    .setBackoffCriteria(
-                        androidx.work.BackoffPolicy.EXPONENTIAL,
-                        com.example.util.AppConstants.WORKER_BACKOFF_SECONDS,
-                        java.util.concurrent.TimeUnit.SECONDS
-                    )
-                    .build()
-
-                WorkManager.getInstance(context.applicationContext).enqueue(workRequest)
+                SmsAnalysisWorker.enqueue(
+                    context = context,
+                    id = insertedId,
+                    address = sender,
+                    body = fullBody,
+                    timestamp = timestamp,
+                    showNotification = true
+                )
             } catch (e: Exception) {
                 Log.e("AnTamAI", "Error processing incoming SMS in SmsReceiver", e)
             } finally {

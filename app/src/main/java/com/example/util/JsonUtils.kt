@@ -1,5 +1,6 @@
 package com.example.util
 
+import android.util.Log
 import com.example.data.model.ScamAnalysisResult
 import com.example.data.remote.ApiClient
 import com.squareup.moshi.JsonAdapter
@@ -19,7 +20,8 @@ object JsonUtils {
                 .trim()
             val parsed = scamResultAdapter.fromJson(cleanedJson)
             parsed?.copy(rawJson = cleanedJson)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.w("AnTamAI", "Failed to parse ScamAnalysisResult from JSON: $json", e)
             null
         }
     }
@@ -27,7 +29,8 @@ object JsonUtils {
     fun toJson(result: ScamAnalysisResult): String {
         return try {
             scamResultAdapter.toJson(result)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.w("AnTamAI", "Failed to serialize ScamAnalysisResult to JSON", e)
             ""
         }
     }

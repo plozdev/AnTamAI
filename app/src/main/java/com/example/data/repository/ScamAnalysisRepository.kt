@@ -121,11 +121,10 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         model: String = MODEL_FLASH,
         onStatusUpdate: ((String) -> Unit)? = null
     ): Result<ScamAnalysisResult> = withContext(Dispatchers.IO) {
-        val apiKey = BuildConfig.GEMINI_API_KEY
-        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
-            return@withContext Result.failure(
-                IllegalStateException("Chưa cấu hình GEMINI_API_KEY trong hệ thống.")
-            )
+        val apiKey = try {
+            requireApiKey()
+        } catch (e: Exception) {
+            return@withContext Result.failure(e)
         }
 
         executeWithRetry(onStatusUpdate) {
@@ -162,11 +161,10 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         model: String = MODEL_FLASH,
         onStatusUpdate: ((String) -> Unit)? = null
     ): Result<ScamAnalysisResult> = withContext(Dispatchers.IO) {
-        val apiKey = BuildConfig.GEMINI_API_KEY
-        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
-            return@withContext Result.failure(
-                IllegalStateException("Chưa cấu hình GEMINI_API_KEY trong hệ thống.")
-            )
+        val apiKey = try {
+            requireApiKey()
+        } catch (e: Exception) {
+            return@withContext Result.failure(e)
         }
 
         executeWithRetry(onStatusUpdate) {
@@ -242,6 +240,14 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         // Both attempts failed, create clear user-friendly fallback
         val userFriendlyMessage = "Chưa thể phân tích sâu lúc này, vui lòng cẩn trọng và thử lại sau ít phút."
         Result.failure(Exception(userFriendlyMessage, lastError))
+    }
+
+    private fun requireApiKey(): String {
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
+            throw IllegalStateException("Chưa cấu hình GEMINI_API_KEY trong hệ thống.")
+        }
+        return apiKey
     }
 
     private fun isHttp429(throwable: Throwable?): Boolean {

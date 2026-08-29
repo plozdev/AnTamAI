@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.SmsEntity
 import com.example.data.model.ScamAnalysisResult
 import com.example.data.model.SmsMessage
-import com.example.data.remote.ApiClient
 import com.example.data.repository.IScamAnalysisRepository
 import com.example.data.repository.ISmsRepository
 import com.example.data.repository.ScamAnalysisRepository
@@ -31,7 +30,6 @@ enum class AppTab {
 
 sealed interface UiState {
     data object Home : UiState
-    data object Settings : UiState
     data class Analyzing(val message: String = "Đang phân tích...") : UiState
     data class Result(
         val data: ScamAnalysisResult,
@@ -241,10 +239,6 @@ class MainViewModel(
 
     fun setAutoScanSms(enabled: Boolean) {
         settingsRepository.setAutoScanSms(enabled)
-    }
-
-    fun openSettings() {
-        _uiState.value = UiState.Settings
     }
 
     fun resetToHome() {

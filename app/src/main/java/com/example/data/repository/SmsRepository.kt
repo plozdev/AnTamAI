@@ -115,24 +115,14 @@ class SmsRepository(private val context: Context) : ISmsRepository {
 
                     // If flagged as needing scrutiny, enqueue WorkManager for deep Gemini analysis
                     if (needsScrutiny) {
-                        val inputData = Data.Builder()
-                            .putLong(SmsAnalysisWorker.KEY_SMS_RECORD_ID, insertedId)
-                            .putString(SmsAnalysisWorker.KEY_ADDRESS, msg.address)
-                            .putString(SmsAnalysisWorker.KEY_BODY, msg.body)
-                            .putLong(SmsAnalysisWorker.KEY_TIMESTAMP, msg.date)
-                            .putBoolean(SmsAnalysisWorker.KEY_SHOW_NOTIFICATION, false)
-                            .build()
-
-                        val workRequest = OneTimeWorkRequestBuilder<SmsAnalysisWorker>()
-                            .setInputData(inputData)
-                            .setBackoffCriteria(
-                                androidx.work.BackoffPolicy.EXPONENTIAL,
-                                AppConstants.WORKER_BACKOFF_SECONDS,
-                                TimeUnit.SECONDS
-                            )
-                            .build()
-
-                        WorkManager.getInstance(context.applicationContext).enqueue(workRequest)
+                        SmsAnalysisWorker.enqueue(
+                            context = context,
+                            id = insertedId,
+                            address = message.address,
+                            body = message.body,
+                            timestamp = message.date,
+                            showNotification = false
+                        )
                     }
                 }
             }

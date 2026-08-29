@@ -7,6 +7,7 @@ import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
 import android.util.Base64
+import android.util.Log
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import kotlin.math.max
@@ -26,7 +27,8 @@ object ImageUtils {
             val scaledBitmap = scaleBitmap(rotatedBitmap, maxDimension)
 
             bitmapToBase64(scaledBitmap)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.w("AnTamAI", "Failed to decode and convert image URI ($uri) to base64", e)
             null
         }
     }

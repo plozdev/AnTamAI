@@ -263,19 +263,6 @@ fun MainAppContent(
                 }
             }
         }
-        is UiState.Settings -> {
-            SettingsScreen(
-                currentPhone = relativePhone,
-                autoReadResult = autoReadResult,
-                autoScanSms = autoScanSms,
-                onSavePhone = { phone -> viewModel.saveRelativePhone(phone) },
-                onClearPhone = { viewModel.clearRelativePhone() },
-                onToggleAutoRead = { enabled -> viewModel.setAutoReadResult(enabled) },
-                onToggleAutoScan = { enabled -> viewModel.setAutoScanSms(enabled) },
-                onBack = { viewModel.resetToHome() },
-                modifier = modifier
-            )
-        }
         is UiState.Analyzing -> {
             AnalyzingScreen(
                 message = state.message,
