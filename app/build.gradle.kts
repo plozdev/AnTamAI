@@ -11,12 +11,12 @@ plugins {
 
 android {
   namespace = "com.example"
-  compileSdk = 35
+  compileSdk = 37
 
   defaultConfig {
     applicationId = "com.aistudio.antamai.qvrzpk"
     minSdk = 24
-    targetSdk = 35
+    targetSdk = 37
     versionCode = 1
     versionName = "1.0"
 
@@ -126,9 +126,7 @@ dependencies {
   implementation(libs.okhttp)
   // implementation(libs.play.services.location)
   implementation(libs.retrofit)
-  testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
-  testImplementation(libs.androidx.junit)
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
   testImplementation(libs.robolectric)
