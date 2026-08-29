@@ -40,7 +40,7 @@ sealed interface UiState {
     data class Error(val errorMessage: String) : UiState
 }
 
-class MainViewModel(
+class MainViewModel @JvmOverloads constructor(
     application: Application,
     private val repository: IScamAnalysisRepository = ScamAnalysisRepository.getInstance(),
     private val smsRepository: ISmsRepository = SmsRepository(application),

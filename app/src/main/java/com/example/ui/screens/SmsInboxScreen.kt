@@ -205,8 +205,8 @@ fun SmsInboxScreen(
                     body = msg.body,
                     timestamp = msg.date,
                     heuristicNeedsScrutiny = msg.heuristicResult.needsScrutiny,
-                    heuristicSignals = msg.heuristicResult.matchedSignals.joinToString("|||"),
-                    status = if (msg.heuristicResult.needsScrutiny) "WARNING" else "SAFE",
+                    heuristicSignals = msg.heuristicResult.matchedSignals.joinToString(AppConstants.SIGNAL_SEPARATOR),
+                    status = if (msg.heuristicResult.needsScrutiny) AppConstants.STATUS_WARNING else AppConstants.STATUS_SAFE,
                     openingMessage = if (msg.heuristicResult.needsScrutiny) "Tin nhắn có từ khóa cần chú ý" else "Tin nhắn bình thường",
                     resultJson = "",
                     isDismissed = false
@@ -682,7 +682,6 @@ fun SmsInboxScreen(
                 }
             }
         }
-    }
 
     // DETAIL MODAL FOR SELECTED SMS
     if (selectedSmsForDetail != null) {

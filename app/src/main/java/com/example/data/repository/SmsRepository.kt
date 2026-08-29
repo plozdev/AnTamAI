@@ -118,9 +118,9 @@ class SmsRepository(private val context: Context) : ISmsRepository {
                         SmsAnalysisWorker.enqueue(
                             context = context,
                             id = insertedId,
-                            address = message.address,
-                            body = message.body,
-                            timestamp = message.date,
+                            address = msg.address,
+                            body = msg.body,
+                            timestamp = msg.date,
                             showNotification = false
                         )
                     }
