@@ -55,9 +55,9 @@ class SmsAnalysisWorker(
             return@withContext Result.success()
         }
 
-        // Step 2: Suspicious sign detected -> Call Gemini via ScamAnalysisRepository
+        // Step 2: Suspicious sign detected -> Call Gemini Flash-Lite via ScamAnalysisRepository
         val repository = ScamAnalysisRepository()
-        val analysisResult = repository.analyzeText(body)
+        val analysisResult = repository.analyzeSms(body)
 
         analysisResult.fold(
             onSuccess = { scamResult ->

@@ -21,6 +21,10 @@ class ScamAnalysisRepository {
         // Global rate limiter: maximum 2 concurrent Gemini API requests across entire app
         val geminiRateLimiter = Semaphore(2)
 
+        // Models: Flash-Lite for fast SMS scanning (Tab 1), Flash for manual check & multimodal images (Tab 2)
+        const val MODEL_FLASH_LITE = "gemini-3.1-flash-lite-preview"
+        const val MODEL_FLASH = "gemini-3.5-flash"
+
         const val SYSTEM_PROMPT_TEMPLATE = """Bạn là chuyên gia an ninh mạng tại Việt Nam, chuyên hỗ trợ người dân (đặc biệt người lớn tuổi, ít rành công nghệ) nhận diện tin nhắn/hình ảnh lừa đảo.
 
 BỐI CẢNH THỜI GIAN (quan trọng):
@@ -91,8 +95,21 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         }
     }
 
+    suspend fun analyzeSms(
+        smsBody: String,
+        onStatusUpdate: ((String) -> Unit)? = null
+    ): Result<ScamAnalysisResult> {
+        // Tab 1 (SMS analysis): Use Flash-Lite for fast, lightweight scam screening
+        return analyzeText(
+            text = smsBody,
+            model = MODEL_FLASH_LITE,
+            onStatusUpdate = onStatusUpdate
+        )
+    }
+
     suspend fun analyzeText(
         text: String,
+        model: String = MODEL_FLASH,
         onStatusUpdate: ((String) -> Unit)? = null
     ): Result<ScamAnalysisResult> = withContext(Dispatchers.IO) {
         val apiKey = BuildConfig.GEMINI_API_KEY
@@ -120,7 +137,11 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
                 )
             )
 
-            val response = ApiClient.geminiService.generateContent(apiKey, request)
+            val response = ApiClient.geminiService.generateContent(
+                model = model,
+                apiKey = apiKey,
+                request = request
+            )
             parseGeminiResponse(response)
         }
     }
@@ -129,6 +150,7 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         base64Data: String,
         mimeType: String = "image/jpeg",
         noteText: String? = null,
+        model: String = MODEL_FLASH,
         onStatusUpdate: ((String) -> Unit)? = null
     ): Result<ScamAnalysisResult> = withContext(Dispatchers.IO) {
         val apiKey = BuildConfig.GEMINI_API_KEY
@@ -169,7 +191,11 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
                 )
             )
 
-            val response = ApiClient.geminiService.generateContent(apiKey, request)
+            val response = ApiClient.geminiService.generateContent(
+                model = model,
+                apiKey = apiKey,
+                request = request
+            )
             parseGeminiResponse(response)
         }
     }
