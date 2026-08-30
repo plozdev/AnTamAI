@@ -857,15 +857,17 @@ fun ResultScreen(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // NCSC Report Button — only for DANGER/WARNING
+            // Hotline An ninh mạng Button — only for DANGER/WARNING
             if (status == ScamStatus.DANGER || status == ScamStatus.WARNING) {
                 androidx.compose.material3.TextButton(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://canhbao.ncsc.gov.vn"))
+                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:0692194053")
+                        }
                         try {
                             context.startActivity(intent)
                         } catch (_: Exception) {
-                            Toast.makeText(context, "Không thể mở trình duyệt", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Không thể mở ứng dụng cuộc gọi", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier
@@ -873,14 +875,14 @@ fun ResultScreen(
                         .testTag("button_report_ncsc")
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Security,
+                        imageVector = Icons.Default.Phone,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                         tint = TextMediumContrast
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Báo cáo NCSC",
+                        text = "An ninh mạng",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
                         fontWeight = FontWeight.SemiBold,
                         color = TextMediumContrast
