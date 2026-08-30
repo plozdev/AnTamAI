@@ -104,9 +104,9 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         }
     }
 
-    suspend fun analyzeSms(
+    override suspend fun analyzeSms(
         smsBody: String,
-        onStatusUpdate: ((String) -> Unit)? = null
+        onStatusUpdate: ((String) -> Unit)?
     ): Result<ScamAnalysisResult> {
         // Tab 1 (SMS analysis): Use Flash-Lite for fast, lightweight scam screening
         return analyzeText(
@@ -116,10 +116,10 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         )
     }
 
-    suspend fun analyzeText(
+    override suspend fun analyzeText(
         text: String,
-        model: String = MODEL_FLASH,
-        onStatusUpdate: ((String) -> Unit)? = null
+        model: String,
+        onStatusUpdate: ((String) -> Unit)?
     ): Result<ScamAnalysisResult> = withContext(Dispatchers.IO) {
         val apiKey = try {
             requireApiKey()
@@ -154,12 +154,12 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         }
     }
 
-    suspend fun analyzeImage(
+    override suspend fun analyzeImage(
         base64Data: String,
-        mimeType: String = "image/jpeg",
-        noteText: String? = null,
-        model: String = MODEL_FLASH,
-        onStatusUpdate: ((String) -> Unit)? = null
+        mimeType: String,
+        noteText: String?,
+        model: String,
+        onStatusUpdate: ((String) -> Unit)?
     ): Result<ScamAnalysisResult> = withContext(Dispatchers.IO) {
         val apiKey = try {
             requireApiKey()
@@ -220,8 +220,10 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
                     return@withPermit result
                 }
                 lastError = result.exceptionOrNull()
+                android.util.Log.e("AnTamAI", "Gemini API call attempt $attempt failed", lastError)
             } catch (e: Exception) {
                 lastError = e
+                android.util.Log.e("AnTamAI", "Gemini API call attempt $attempt exception", e)
             }
 
             // If this was the first attempt, prepare for retry 1 time

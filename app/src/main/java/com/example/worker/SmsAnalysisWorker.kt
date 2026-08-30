@@ -34,6 +34,10 @@ class SmsAnalysisWorker(
             timestamp: Long,
             showNotification: Boolean
         ) {
+            val constraints = androidx.work.Constraints.Builder()
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                .build()
+
             val inputData = androidx.work.Data.Builder()
                 .putLong(KEY_SMS_RECORD_ID, id)
                 .putString(KEY_ADDRESS, address)
@@ -43,6 +47,7 @@ class SmsAnalysisWorker(
                 .build()
 
             val workRequest = androidx.work.OneTimeWorkRequestBuilder<SmsAnalysisWorker>()
+                .setConstraints(constraints)
                 .setInputData(inputData)
                 .setBackoffCriteria(
                     androidx.work.BackoffPolicy.EXPONENTIAL,

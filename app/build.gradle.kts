@@ -11,12 +11,12 @@ plugins {
 
 android {
   namespace = "com.example"
-  compileSdk = 35
+  compileSdk = 37
 
   defaultConfig {
     applicationId = "com.aistudio.antamai.qvrzpk"
     minSdk = 24
-    targetSdk = 35
+    targetSdk = 37
     versionCode = 1
     versionName = "1.0"
 
@@ -46,8 +46,14 @@ android {
     release {
       isCrunchPngs = false
       isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
+      val releaseKeystore = signingConfigs.getByName("release").storeFile
+      if (releaseKeystore?.exists() == true) {
+        signingConfig = signingConfigs.getByName("release")
+      } else if (file("${rootDir}/debug.keystore").exists()) {
+        signingConfig = signingConfigs.getByName("debugConfig")
+      }
     }
     debug {
       if (file("${rootDir}/debug.keystore").exists()) {
@@ -133,7 +139,6 @@ dependencies {
   testImplementation(libs.roborazzi)
   testImplementation(libs.roborazzi.compose)
   testImplementation(libs.roborazzi.junit.rule)
-  androidTestImplementation(platform(libs.androidx.compose.bom))
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   androidTestImplementation(libs.androidx.espresso.core)
   androidTestImplementation(libs.androidx.junit)

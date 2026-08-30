@@ -39,7 +39,6 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -61,12 +60,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -88,6 +88,7 @@ import com.example.ui.theme.SafeGreen
 import com.example.ui.theme.TextHighContrast
 import com.example.ui.theme.TextMediumContrast
 import com.example.ui.theme.TextSubtle
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +100,8 @@ fun HomeScreen(
     onAnalyzeImageBitmap: (Bitmap) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val clipboardManager = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
+    val clipboard = LocalClipboard.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var messageText by remember { mutableStateOf("") }
@@ -139,24 +141,7 @@ fun HomeScreen(
         AppTabHeader(
             icon = Icons.Default.Shield,
             title = "Kiểm tra lừa đảo",
-            subtitle = "Chụp ảnh màn hình hoặc dán tin nhắn",
-            trailingAction = {
-                IconButton(
-                    onClick = onOpenSettings,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(LightSurfaceVariant)
-                        .testTag("button_open_settings")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Cài đặt ứng dụng",
-                        tint = OceanPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+            subtitle = "Chụp ảnh màn hình hoặc dán tin nhắn"
         )
 
         // Family phone indicator if configured
@@ -325,9 +310,10 @@ fun HomeScreen(
                     // Quick Paste button
                     OutlinedButton(
                         onClick = {
-                            val clipText = clipboardManager.getText()?.text
-                            if (!clipText.isNullOrBlank()) {
-                                messageText = clipText
+                            scope.launch {
+                                val clipEntry = clipboard.getClipEntry()
+                                val clipText = clipEntry?.clipData?.getItemAt(0)?.text?.toString()
+                                if (!clipText.isNullOrBlank()) messageText = clipText
                             }
                         },
                         shape = RoundedCornerShape(10.dp),

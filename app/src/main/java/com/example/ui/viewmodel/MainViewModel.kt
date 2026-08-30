@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class AppTab {
-    MESSAGES, // TAB 1 - "Nhật ký" (Default Main Tab)
+    MESSAGES, // TAB 1 - "SMS" (Default Main Tab)
     CHECK,    // TAB 2 - "Kiểm tra"
     SETTINGS  // TAB 3 - "Cài đặt"
 }
@@ -40,7 +40,7 @@ sealed interface UiState {
     data class Error(val errorMessage: String) : UiState
 }
 
-class MainViewModel(
+class MainViewModel @JvmOverloads constructor(
     application: Application,
     private val repository: IScamAnalysisRepository = ScamAnalysisRepository.getInstance(),
     private val smsRepository: ISmsRepository = SmsRepository(application),
