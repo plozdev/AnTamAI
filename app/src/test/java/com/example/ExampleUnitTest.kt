@@ -27,7 +27,7 @@ class ExampleUnitTest {
             status = "DANGER",
             openingMessage = "Bạn bình tĩnh nhé, đây là tin nhắn lừa đảo!",
             signals = listOf("Link sai lệch", "Thúc ép thời gian"),
-            recommendedActions = listOf("Không chuyển tiền", "Mở app ngân hàng kiểm tra"),
+            reminders = listOf("Không chuyển tiền", "Mở app ngân hàng kiểm tra"),
             officialHotline = "1900545413"
         )
         assertEquals(ScamStatus.DANGER, dangerResult.scamStatus)
@@ -38,7 +38,7 @@ class ExampleUnitTest {
             status = "WARNING",
             openingMessage = "Ảnh hóa đơn này chưa xác minh được",
             signals = listOf("Ảnh chụp màn hình có thể làm giả"),
-            recommendedActions = listOf("Chưa giao hàng", "Kiểm tra số dư thực tế")
+            reminders = listOf("Chưa giao hàng", "Kiểm tra số dư thực tế")
         )
         assertEquals(ScamStatus.WARNING, warningResult.scamStatus)
     }
@@ -47,17 +47,17 @@ class ExampleUnitTest {
     fun testHeuristicFilterViettelAndDataPlusCases() {
         // Case 1: 195 Viettel promo - should NOT flag
         val viettelSms = "[TB] Uu dai dac biet: Dang ky goi cuoc 4G ST15K chi 15.000d/3 ngay co 3GB data toc do cao. Soan ST15K gui 195."
-        val viettelResult = HeuristicFilter.analyze("195", viettelSms)
+        val viettelResult = HeuristicFilter.analyze(viettelSms)
         assertFalse("Viettel promo should not be flagged", viettelResult.needsScrutiny)
 
         // Case 2: 9598 Data Plus invite - should NOT flag
         val dataPlusSms = "Moi quy khach tham gia chuong trinh Data Plus nhan 5GB luu luong mien phi trong 24 gio toi. Chi tiet LH 18008098."
-        val dataPlusResult = HeuristicFilter.analyze("9598", dataPlusSms)
+        val dataPlusResult = HeuristicFilter.analyze(dataPlusSms)
         assertFalse("Data Plus promo without threats should not be flagged", dataPlusResult.needsScrutiny)
 
         // Case 3: Real scam with bank impersonation and threat & link
         val bankScamSms = "Vietcombank: Tai khoan cua quy khach da bi tam khoa do vi pham. Vui long dang nhap https://vcb-security.top trong 2 gio de xac thuc tranh bi mat tien vinh vien."
-        val scamResult = HeuristicFilter.analyze("+84901234567", bankScamSms)
+        val scamResult = HeuristicFilter.analyze(bankScamSms)
         assertTrue("Scam SMS with phishing link and threat should be flagged", scamResult.needsScrutiny)
     }
 

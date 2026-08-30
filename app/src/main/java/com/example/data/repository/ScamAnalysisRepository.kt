@@ -244,8 +244,7 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         Result.failure(Exception(userFriendlyMessage, lastError))
     }
 
-    private fun requireApiKey(): String {
-        val apiKey = BuildConfig.GEMINI_API_KEY
+    internal fun requireApiKey(apiKey: String = BuildConfig.GEMINI_API_KEY): String {
         if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
             throw IllegalStateException("Chưa cấu hình GEMINI_API_KEY trong hệ thống.")
         }

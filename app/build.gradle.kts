@@ -69,7 +69,12 @@ android {
     compose = true
     buildConfig = true
   }
-  testOptions { unitTests { isIncludeAndroidResources = true } }
+  testOptions {
+    unitTests {
+      isIncludeAndroidResources = true
+      isReturnDefaultValues = true
+    }
+  }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
@@ -139,6 +144,8 @@ dependencies {
   testImplementation(libs.roborazzi)
   testImplementation(libs.roborazzi.compose)
   testImplementation(libs.roborazzi.junit.rule)
+  testImplementation(libs.androidx.compose.ui.test.junit4)
+  testImplementation(libs.androidx.compose.ui.test.manifest)
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   androidTestImplementation(libs.androidx.espresso.core)
   androidTestImplementation(libs.androidx.junit)
