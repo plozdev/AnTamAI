@@ -313,7 +313,7 @@ fun SmsInboxScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "AnTâm.AI giúp ba mẹ tự động nhận diện tin nhắn lừa đảo mạo danh ngân hàng, công an, phạt nguội hoặc chứa đường link nguy hiểm.",
+                        text = "AnTâm.AI giúp bạn tự động nhận diện tin nhắn lừa đảo mạo danh ngân hàng, công an, phạt nguội hoặc chứa đường link nguy hiểm.",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 13.5.sp,
                             lineHeight = 20.sp
@@ -716,7 +716,7 @@ fun SmsInboxScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Để bảo vệ ba mẹ trước các tin nhắn lừa đảo ngày càng tinh vi, ứng dụng cần được cấp quyền:",
+                        text = "Để bảo vệ bạn trước các tin nhắn lừa đảo ngày càng tinh vi, ứng dụng cần được cấp quyền:",
                         style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp, fontSize = 13.5.sp),
                         color = TextHighContrast
                     )

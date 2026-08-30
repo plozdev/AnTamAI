@@ -34,7 +34,7 @@ class ScamAnalysisRepository : IScamAnalysisRepository {
         const val MODEL_FLASH_LITE = "gemini-3.1-flash-lite-preview"
         const val MODEL_FLASH = "gemini-3.5-flash"
 
-        const val SYSTEM_PROMPT_TEMPLATE = """Bạn là chuyên gia an ninh mạng tại Việt Nam, chuyên hỗ trợ người dân (đặc biệt người lớn tuổi, ít rành công nghệ) nhận diện tin nhắn/hình ảnh lừa đảo.
+        const val SYSTEM_PROMPT_TEMPLATE = """Bạn là chuyên gia an ninh mạng tại Việt Nam, chuyên hỗ trợ người dùng nhận diện tin nhắn/hình ảnh lừa đảo.
 
 BỐI CẢNH THỜI GIAN (quan trọng):
 Hôm nay là ngày {CURRENT_DATE} — giá trị này do ứng dụng truyền vào, LUÔN dùng làm mốc "hiện tại", KHÔNG được tự suy luận ngày hiện tại từ kiến thức huấn luyện của bạn.
@@ -42,7 +42,7 @@ Một sự kiện/mốc thời gian diễn ra SAU ngày hiện tại KHÔNG tự
 
 Nhiệm vụ: phân tích nội dung được cung cấp (text hoặc ảnh chụp màn hình tin nhắn/website/hóa đơn) và xác định có dấu hiệu lừa đảo phổ biến tại Việt Nam hay không, bao gồm nhưng không giới hạn: giả danh công an/tòa án/thuế vụ, báo phạt nguội giả, biên lai chuyển khoản giả, giả mạo bưu cục giữ hàng, trúng thưởng giả, giả mạo ngân hàng (sai domain, sai logo), link rút gọn đáng ngờ, cú pháp tạo áp lực thời gian ("chuyển tiền trong X giờ", "tài khoản sẽ bị khóa").
 
-Giọng văn: kính trọng, ấm áp, trấn an như "người con am hiểu công nghệ" đang giải thích cho cha mẹ. TUYỆT ĐỐI không dùng thuật ngữ kỹ thuật khô khan.
+Giọng văn: ân cần, gần gũi, trấn an, xưng hô là "bạn" (ví dụ: "Bạn bình tĩnh nhé...", "Bạn tuyệt đối không..."). TUYỆT ĐỐI không dùng thuật ngữ kỹ thuật khô khan.
 
 Câu đầu tiên LUÔN LÀ lời trấn an phù hợp với mức độ nguy hiểm.
 
@@ -74,8 +74,8 @@ QUY ĐỊNH ĐỊNH DẠNG:
 - "financial_reminder": object BẮT BUỘC LUÔN XUẤT HIỆN cho mọi ảnh biên lai/chuyển khoản (KHÔNG phụ thuộc status DANGER/WARNING/SAFE). Với nội dung khác (không phải ảnh biên lai/chuyển khoản) thì để null:
   {
     "show": true,
-    "message_1": "Mặc dù bức ảnh này trông hoàn toàn bình thường, ba mẹ tuyệt đối chưa giao hàng hay chuyển tiền vội nhé ạ.",
-    "message_2": "Nguyên tắc vàng: Ba mẹ hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
+    "message_1": "Mặc dù bức ảnh này trông hoàn toàn bình thường, bạn tuyệt đối chưa giao hàng hay chuyển tiền vội nhé.",
+    "message_2": "Nguyên tắc vàng: Bạn hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
   }
 
 Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào khác ngoài JSON:
@@ -89,8 +89,8 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
   "official_hotline": "số hotline chính thức nếu nhận diện được, hoặc null",
   "financial_reminder": {
     "show": true,
-    "message_1": "Mặc dù bức ảnh này trông hoàn toàn bình thường, ba mẹ tuyệt đối chưa giao hàng hay chuyển tiền vội nhé ạ.",
-    "message_2": "Nguyên tắc vàng: Ba mẹ hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
+    "message_1": "Mặc dù bức ảnh này trông hoàn toàn bình thường, bạn tuyệt đối chưa giao hàng hay chuyển tiền vội nhé.",
+    "message_2": "Nguyên tắc vàng: Bạn hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
   } hoặc null
 }"""
 
@@ -244,8 +244,7 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
         Result.failure(Exception(userFriendlyMessage, lastError))
     }
 
-    private fun requireApiKey(): String {
-        val apiKey = BuildConfig.GEMINI_API_KEY
+    internal fun requireApiKey(apiKey: String = BuildConfig.GEMINI_API_KEY): String {
         if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
             throw IllegalStateException("Chưa cấu hình GEMINI_API_KEY trong hệ thống.")
         }

@@ -25,6 +25,8 @@ class GreetingScreenshotTest {
     composeTestRule.setContent {
       AnTamTheme {
         HomeScreen(
+          relativePhone = "",
+          onOpenSettings = {},
           onAnalyzeText = {},
           onAnalyzeImageUri = {},
           onAnalyzeImageBitmap = {}

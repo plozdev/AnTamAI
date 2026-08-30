@@ -50,7 +50,7 @@ object NotificationHelper {
         val displayMessage = if (openingMessage.isNotBlank()) {
             openingMessage
         } else {
-            "Phát hiện dấu hiệu bất thường trong tin nhắn. Ba mẹ chạm vào đây để xem chi tiết nhé ạ!"
+            "Phát hiện dấu hiệu bất thường trong tin nhắn. Bạn chạm vào đây để xem chi tiết nhé!"
         }
 
         val intent = Intent(context, MainActivity::class.java).apply {

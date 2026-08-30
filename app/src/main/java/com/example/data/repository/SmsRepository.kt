@@ -186,5 +186,7 @@ class SmsRepository(private val context: Context) : ISmsRepository {
     override suspend fun updateAnalysisResult(id: Long, status: String, openingMessage: String, resultJson: String) = withContext(Dispatchers.IO) {
         smsDao.updateAnalysisResult(id, status, openingMessage, resultJson)
     }
+
+    override fun getDangerousMessageCountFlow(): Flow<Int> = smsDao.getDangerousMessageCount()
 }
 

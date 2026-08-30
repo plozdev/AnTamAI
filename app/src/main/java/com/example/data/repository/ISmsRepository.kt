@@ -13,4 +13,5 @@ interface ISmsRepository {
     suspend fun getInboxMessages(limit: Int = AppConstants.DEFAULT_SMS_FETCH_LIMIT): Result<List<SmsMessage>>
     suspend fun insertIncomingSms(sender: String, body: String, timestamp: Long): Long
     suspend fun updateAnalysisResult(id: Long, status: String, openingMessage: String, resultJson: String)
+    fun getDangerousMessageCountFlow(): Flow<Int>
 }

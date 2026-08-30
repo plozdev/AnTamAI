@@ -21,7 +21,15 @@ object JsonUtils {
             val parsed = scamResultAdapter.fromJson(cleanedJson)
             parsed?.copy(rawJson = cleanedJson)
         } catch (e: Exception) {
-            Log.w("AnTamAI", "Failed to parse ScamAnalysisResult from JSON: $json", e)
+            try {
+                if (com.example.BuildConfig.DEBUG) {
+                    Log.w("AnTamAI", "Failed to parse ScamAnalysisResult from JSON: $json", e)
+                } else {
+                    Log.w("AnTamAI", "Failed to parse ScamAnalysisResult", e)
+                }
+            } catch (_: Throwable) {
+                // Ignore log errors in pure JVM unit test environment
+            }
             null
         }
     }
@@ -30,7 +38,11 @@ object JsonUtils {
         return try {
             scamResultAdapter.toJson(result)
         } catch (e: Exception) {
-            Log.w("AnTamAI", "Failed to serialize ScamAnalysisResult to JSON", e)
+            try {
+                Log.w("AnTamAI", "Failed to serialize ScamAnalysisResult to JSON", e)
+            } catch (_: Throwable) {
+                // Ignore log errors in pure JVM unit test environment
+            }
             ""
         }
     }
