@@ -229,22 +229,6 @@ fun ResultScreen(
                     color = TextHighContrast
                 )
             }
-
-            IconButton(
-                onClick = onOpenSettings,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(LightSurfaceVariant)
-                    .testTag("button_open_settings_from_result")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Cài đặt",
-                    tint = OceanPrimary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
         }
 
         // ORIGINAL CONTENT SNIPPET / IMAGE PREVIEW
