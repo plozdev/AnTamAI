@@ -220,8 +220,10 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
                     return@withPermit result
                 }
                 lastError = result.exceptionOrNull()
+                android.util.Log.e("AnTamAI", "Gemini API call attempt $attempt failed", lastError)
             } catch (e: Exception) {
                 lastError = e
+                android.util.Log.e("AnTamAI", "Gemini API call attempt $attempt exception", e)
             }
 
             // If this was the first attempt, prepare for retry 1 time
