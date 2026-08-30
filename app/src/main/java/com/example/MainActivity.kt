@@ -140,13 +140,13 @@ fun MainAppContent(
                             icon = {
                                 Icon(
                                     imageVector = if (currentTab == AppTab.MESSAGES) Icons.Filled.Message else Icons.Outlined.Message,
-                                    contentDescription = "Nhật ký",
+                                    contentDescription = "SMS",
                                     modifier = Modifier.size(24.dp)
                                 )
                             },
                             label = {
                                 Text(
-                                    text = "Nhật ký",
+                                    text = "SMS",
                                     fontSize = 12.sp,
                                     fontWeight = if (currentTab == AppTab.MESSAGES) FontWeight.Bold else FontWeight.Medium
                                 )
