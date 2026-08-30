@@ -34,26 +34,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -194,9 +189,7 @@ fun SmsInboxScreen(
 
     // Convert fallbackMessages to entities if room entities are currently empty, sorted strictly by timestamp DESC
     val displayedEntities = remember(smsEntities, fallbackMessages) {
-        val raw = if (smsEntities.isNotEmpty()) {
-            smsEntities
-        } else {
+        val raw = smsEntities.ifEmpty {
             fallbackMessages.map { msg ->
                 SmsEntity(
                     id = msg.id,
@@ -256,9 +249,10 @@ fun SmsInboxScreen(
     ) {
         // UNIFIED HEADER BAR
         AppTabHeader(
-            icon = Icons.Default.Message,
-            title = "Nhật ký an toàn",
+            icon = Icons.AutoMirrored.Filled.Message,
+            title = "Tin nhắn",
             subtitle = "Lịch sử nhận và quét tin nhắn SMS",
+            modifier = Modifier.padding(horizontal = 16.dp),
             trailingAction = {
                 IconButton(
                     onClick = {
@@ -1132,7 +1126,7 @@ private fun SmsEntityDetailDialog(
 
     val signalsList = remember(entity.heuristicSignals) {
         if (entity.heuristicSignals.isNotBlank()) {
-            entity.heuristicSignals.split(com.example.util.AppConstants.SIGNAL_SEPARATOR).filter { it.isNotBlank() }
+            entity.heuristicSignals.split(AppConstants.SIGNAL_SEPARATOR).filter { it.isNotBlank() }
         } else emptyList()
     }
 
