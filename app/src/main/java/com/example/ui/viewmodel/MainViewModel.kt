@@ -73,6 +73,13 @@ class MainViewModel @JvmOverloads constructor(
     val autoReadResult: StateFlow<Boolean> = settingsRepository.autoReadResult
     val autoScanSms: StateFlow<Boolean> = settingsRepository.autoScanSms
 
+    val dangerousMessageCount: StateFlow<Int> = smsRepository.getDangerousMessageCountFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0
+        )
+
     private var lastAnalyzedAction: (() -> Unit)? = null
 
     fun selectTab(tab: AppTab) {

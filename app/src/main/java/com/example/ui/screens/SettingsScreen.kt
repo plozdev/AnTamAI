@@ -84,6 +84,7 @@ fun SettingsScreen(
     currentPhone: String,
     autoReadResult: Boolean = false,
     autoScanSms: Boolean = true,
+    protectedCount: Int = 0,
     onSavePhone: (String) -> Unit,
     onClearPhone: () -> Unit,
     onToggleAutoRead: (Boolean) -> Unit = {},
@@ -113,6 +114,59 @@ fun SettingsScreen(
             title = "Cài đặt ứng dụng",
             subtitle = "Số người thân & tùy chọn hỗ trợ"
         )
+
+        // Protection Stats Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("card_protection_stats"),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = OceanPrimaryContainer),
+            border = CardDefaults.outlinedCardBorder().copy(
+                width = 1.2.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(OceanPrimary.copy(alpha = 0.4f))
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(OceanPrimary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = null,
+                        tint = OceanPrimary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column {
+                    Text(
+                        text = "$protectedCount",
+                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 28.sp),
+                        fontWeight = FontWeight.Black,
+                        color = OceanPrimary
+                    )
+                    Text(
+                        text = "Đã bảo vệ bạn khỏi tin nhắn nguy hiểm",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
+                        fontWeight = FontWeight.Medium,
+                        color = TextMediumContrast
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
 
         // Real-time SMS Auto Scan Toggle Card
         Card(

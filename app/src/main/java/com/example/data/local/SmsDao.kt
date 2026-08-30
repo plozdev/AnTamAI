@@ -48,4 +48,7 @@ interface SmsDao {
 
     @Query("DELETE FROM sms_entities")
     suspend fun clearAll()
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE status = 'DANGER' OR status = 'WARNING'")
+    fun getDangerousMessageCount(): Flow<Int>
 }

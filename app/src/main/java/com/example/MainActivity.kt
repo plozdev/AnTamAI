@@ -107,6 +107,7 @@ fun MainAppContent(
     val smsMessages by viewModel.smsMessages.collectAsStateWithLifecycle()
     val isSmsLoading by viewModel.isSmsLoading.collectAsStateWithLifecycle()
     val smsError by viewModel.smsError.collectAsStateWithLifecycle()
+    val protectedCount by viewModel.dangerousMessageCount.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
 
     // Ensure back press on Result, Settings, Analyzing or Error returns to Home (Messages tab)
@@ -251,6 +252,7 @@ fun MainAppContent(
                                 currentPhone = relativePhone,
                                 autoReadResult = autoReadResult,
                                 autoScanSms = autoScanSms,
+                                protectedCount = protectedCount,
                                 onSavePhone = { phone -> viewModel.saveRelativePhone(phone) },
                                 onClearPhone = { viewModel.clearRelativePhone() },
                                 onToggleAutoRead = { enabled -> viewModel.setAutoReadResult(enabled) },

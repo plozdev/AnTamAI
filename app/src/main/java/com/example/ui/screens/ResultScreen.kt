@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -844,6 +845,87 @@ fun ResultScreen(
             }
 
             Spacer(modifier = Modifier.height(14.dp))
+        }
+
+        HorizontalDivider(color = LightOutline, thickness = 1.dp)
+
+        // COMPACT ROW: NCSC Report + Share buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // NCSC Report Button — only for DANGER/WARNING
+            if (status == ScamStatus.DANGER || status == ScamStatus.WARNING) {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://canhbao.ncsc.gov.vn"))
+                        try {
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            Toast.makeText(context, "Không thể mở trình duyệt", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("button_report_ncsc")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = TextMediumContrast
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Báo cáo NCSC",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextMediumContrast
+                    )
+                }
+            }
+
+            // Share Button — all statuses
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    val truncatedOpening = if (result.openingMessage.length > 80) {
+                        result.openingMessage.take(80) + "..."
+                    } else {
+                        result.openingMessage.ifBlank { "Nội dung đáng ngờ" }
+                    }
+                    val firstSignal = result.signals.firstOrNull() ?: "Không rõ"
+                    val shareText = "⚠️ AnTâm.AI vừa phát hiện: $truncatedOpening\nDấu hiệu: $firstSignal\n\nKiểm tra tin nhắn nghi ngờ miễn phí tại AnTâm.AI"
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                    }
+                    try {
+                        context.startActivity(Intent.createChooser(sendIntent, "Chia sẻ cảnh báo"))
+                    } catch (_: Exception) {
+                        Toast.makeText(context, "Không thể mở chia sẻ", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("button_share_result")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = TextMediumContrast
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Chia sẻ cảnh báo",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextMediumContrast
+                )
+            }
         }
 
         HorizontalDivider(color = LightOutline, thickness = 1.dp)
