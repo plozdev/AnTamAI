@@ -425,9 +425,9 @@ fun ResultScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     val msg1 = result.financialReminder.message1
-                        ?: "Mặc dù bức ảnh này trông hoàn toàn bình thường, ba mẹ tuyệt đối chưa giao hàng hay chuyển tiền vội nhé ạ."
+                        ?: "Mặc dù bức ảnh này trông hoàn toàn bình thường, bạn tuyệt đối chưa giao hàng hay chuyển tiền vội nhé."
                     val msg2 = result.financialReminder.message2
-                        ?: "Nguyên tắc vàng: Ba mẹ hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
+                        ?: "Nguyên tắc vàng: Bạn hãy tự mở ứng dụng ngân hàng của mình lên. Chỉ khi nào thấy số dư thực tế tăng lên thì giao dịch mới thực sự an toàn."
 
                     Text(
                         text = msg1,

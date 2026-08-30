@@ -24,7 +24,7 @@ class JsonUtilsTest {
         val json = """
             {
               "status": "DANGER",
-              "opening_message": "Ba mẹ bình tĩnh nhé, đây là tin nhắn lừa đảo mạo danh!",
+              "opening_message": "Bạn bình tĩnh nhé, đây là tin nhắn lừa đảo mạo danh!",
               "signals": ["Tên miền lạ", "Yêu cầu cung cấp OTP", "Đe dọa khóa tài khoản"],
               "reminders": ["Tuyệt đối không bấm link", "Không cung cấp mã OTP"],
               "action": {
@@ -35,8 +35,8 @@ class JsonUtilsTest {
               "official_hotline": "1900545413",
               "financial_reminder": {
                 "show": true,
-                "message_1": "Mặc dù bức ảnh này trông hoàn toàn bình thường, ba mẹ tuyệt đối chưa giao hàng hay chuyển tiền vội nhé ạ.",
-                "message_2": "Nguyên tắc vàng: Ba mẹ hãy tự mở ứng dụng ngân hàng của mình lên."
+                "message_1": "Mặc dù bức ảnh này trông hoàn toàn bình thường, bạn tuyệt đối chưa giao hàng hay chuyển tiền vội nhé.",
+                "message_2": "Nguyên tắc vàng: Bạn hãy tự mở ứng dụng ngân hàng của mình lên."
               }
             }
         """.trimIndent()
@@ -45,14 +45,14 @@ class JsonUtilsTest {
         assertNotNull(result)
         assertEquals("DANGER", result?.status)
         assertEquals(ScamStatus.DANGER, result?.scamStatus)
-        assertEquals("Ba mẹ bình tĩnh nhé, đây là tin nhắn lừa đảo mạo danh!", result?.openingMessage)
+        assertEquals("Bạn bình tĩnh nhé, đây là tin nhắn lừa đảo mạo danh!", result?.openingMessage)
         assertEquals(3, result?.signals?.size)
         assertEquals(2, result?.reminders?.size)
         assertEquals("Gọi tổng đài Vietcombank", result?.action?.label)
         assertEquals("1900545413", result?.action?.phone)
         assertEquals("1900545413", result?.officialHotline)
         assertTrue(result?.financialReminder?.show == true)
-        assertEquals("Mặc dù bức ảnh này trông hoàn toàn bình thường, ba mẹ tuyệt đối chưa giao hàng hay chuyển tiền vội nhé ạ.", result?.financialReminder?.message1)
+        assertEquals("Mặc dù bức ảnh này trông hoàn toàn bình thường, bạn tuyệt đối chưa giao hàng hay chuyển tiền vội nhé.", result?.financialReminder?.message1)
     }
 
     @Test
@@ -61,7 +61,7 @@ class JsonUtilsTest {
             ```json
             {
               "status": "SAFE",
-              "opening_message": "Tin nhắn này an toàn ba mẹ nhé!",
+              "opening_message": "Tin nhắn này an toàn bạn nhé!",
               "signals": [],
               "reminders": ["Không cần thao tác gì thêm"],
               "action": null,
@@ -76,7 +76,7 @@ class JsonUtilsTest {
         assertNotNull(result)
         assertEquals("SAFE", result?.status)
         assertEquals(ScamStatus.SAFE, result?.scamStatus)
-        assertEquals("Tin nhắn này an toàn ba mẹ nhé!", result?.openingMessage)
+        assertEquals("Tin nhắn này an toàn bạn nhé!", result?.openingMessage)
         assertNull(result?.action)
         assertNull(result?.financialReminder)
     }
