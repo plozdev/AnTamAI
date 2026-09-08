@@ -252,7 +252,6 @@ fun MainAppContent(
                                 currentPhone = relativePhone,
                                 autoReadResult = autoReadResult,
                                 autoScanSms = autoScanSms,
-                                protectedCount = protectedCount,
                                 onSavePhone = { phone -> viewModel.saveRelativePhone(phone) },
                                 onClearPhone = { viewModel.clearRelativePhone() },
                                 onToggleAutoRead = { enabled -> viewModel.setAutoReadResult(enabled) },
