@@ -7,6 +7,7 @@ import com.example.data.model.ScamStatus
 import com.example.data.repository.ScamAnalysisRepository
 import com.example.data.repository.SettingsRepository
 import com.example.util.HeuristicFilter
+import com.example.ui.screens.buildShareText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -91,5 +92,71 @@ class ExampleUnitTest {
 
         repo.setAutoScanSms(true)
         assertTrue(repo.getAutoScanSms())
+    }
+
+    @Test
+    fun testSettingsToggleOnOffCycle() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val repo1 = SettingsRepository(context)
+
+        // Turn OFF auto scan
+        repo1.setAutoScanSms(false)
+        assertFalse(repo1.getAutoScanSms())
+        assertFalse(repo1.autoScanSms.value)
+
+        // Read from fresh repository instance (simulating fresh process/broadcast)
+        val repo2 = SettingsRepository(context)
+        assertFalse(repo2.getAutoScanSms())
+
+        // Turn back ON
+        repo2.setAutoScanSms(true)
+        assertTrue(repo2.getAutoScanSms())
+        assertTrue(repo2.autoScanSms.value)
+
+        // Verify fresh instance picks up ON immediately
+        val repo3 = SettingsRepository(context)
+        assertTrue(repo3.getAutoScanSms())
+
+        // Test AutoRead toggle cycle
+        repo1.setAutoReadResult(false)
+        assertFalse(repo1.getAutoReadResult())
+        repo1.setAutoReadResult(true)
+        assertTrue(repo1.getAutoReadResult())
+    }
+
+    @Test
+    fun testBuildShareTextForStatuses() {
+        val danger = ScamAnalysisResult(
+            status = "DANGER",
+            openingMessage = "Bạn cẩn thận nhé, đây là bẫy lừa đảo mạo danh ngân hàng",
+            signals = listOf("Đường link giả mạo vietcombank"),
+            reminders = listOf("Không click link")
+        )
+        val dangerShare = buildShareText(danger)
+        assertTrue(dangerShare.startsWith("🚨 AnTâm.AI CẢNH BÁO: Bạn cẩn thận nhé, đây là bẫy lừa đảo mạo danh ngân hàng"))
+        assertTrue(dangerShare.contains("Dấu hiệu: Đường link giả mạo vietcombank"))
+        assertTrue(dangerShare.endsWith("Kiểm tra tin nhắn nghi ngờ miễn phí tại AnTâm.AI"))
+
+        val warning = ScamAnalysisResult(
+            status = "WARNING",
+            openingMessage = "Tin nhắn có dấu hiệu bất thường cần xác minh thêm",
+            signals = listOf("Yêu cầu cung cấp thông tin cá nhân"),
+            reminders = listOf("Gọi điện xác minh")
+        )
+        val warningShare = buildShareText(warning)
+        assertTrue(warningShare.startsWith("⚠️ AnTâm.AI lưu ý: Tin nhắn có dấu hiệu bất thường cần xác minh thêm"))
+        assertTrue(warningShare.contains("Dấu hiệu: Yêu cầu cung cấp thông tin cá nhân"))
+        assertTrue(warningShare.endsWith("Kiểm tra tin nhắn nghi ngờ miễn phí tại AnTâm.AI"))
+
+        val safe = ScamAnalysisResult(
+            status = "SAFE",
+            openingMessage = "Tin nhắn quảng cáo thông thường từ tổng đài chính thức",
+            signals = listOf("Cú pháp đăng ký gói cước Viettel hợp lệ"),
+            reminders = emptyList()
+        )
+        val safeShare = buildShareText(safe)
+        assertTrue(safeShare.startsWith("✅ AnTâm.AI xác nhận AN TOÀN: Tin nhắn quảng cáo thông thường từ tổng đài chính thức"))
+        assertTrue(safeShare.contains("Dấu hiệu: Cú pháp đăng ký gói cước Viettel hợp lệ"))
+        assertTrue(safeShare.endsWith("Kiểm tra tin nhắn nghi ngờ miễn phí tại AnTâm.AI"))
     }
 }

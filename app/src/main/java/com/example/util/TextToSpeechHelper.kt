@@ -13,6 +13,7 @@ class TextToSpeechHelper(private val context: Context) : TextToSpeech.OnInitList
 
     private var tts: TextToSpeech? = null
     private var isInitialized = false
+    private var pendingSpeechText: String? = null
 
     private val _isSpeaking = MutableStateFlow(false)
     val isSpeaking: StateFlow<Boolean> = _isSpeaking.asStateFlow()
@@ -51,13 +52,23 @@ class TextToSpeechHelper(private val context: Context) : TextToSpeech.OnInitList
                     Log.e("TTS", "Error code: $errorCode")
                 }
             })
+
+            pendingSpeechText?.let { pending ->
+                pendingSpeechText = null
+                speak(pending)
+            }
         } else {
             Log.e("TTS", "Init failed")
+            pendingSpeechText = null
         }
     }
 
     fun speak(text: String) {
-        if (!isInitialized || text.isBlank()) return
+        if (text.isBlank()) return
+        if (!isInitialized) {
+            pendingSpeechText = text
+            return
+        }
         stop()
         _isSpeaking.value = true
         val utteranceId = "ANTAM_SPEECH_${System.currentTimeMillis()}"
@@ -65,11 +76,13 @@ class TextToSpeechHelper(private val context: Context) : TextToSpeech.OnInitList
     }
 
     fun stop() {
+        pendingSpeechText = null
         tts?.stop()
         _isSpeaking.value = false
     }
 
     fun shutdown() {
+        pendingSpeechText = null
         tts?.stop()
         tts?.shutdown()
         tts = null

@@ -77,6 +77,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.data.model.ScamAnalysisResult
 import com.example.data.model.ScamStatus
+import com.example.data.repository.SettingsRepository
 import com.example.ui.theme.DangerBorder
 import com.example.ui.theme.DangerContainer
 import com.example.ui.theme.DangerRed
@@ -107,7 +108,8 @@ import com.example.util.toSpeechText
 fun ResultScreen(
     result: ScamAnalysisResult,
     relativePhone: String = "",
-    autoReadResult: Boolean = false,
+    autoReadResult: Boolean? = null,
+    settingsRepository: SettingsRepository? = null,
     originalText: String? = null,
     originalImageBitmap: Bitmap? = null,
     originalImageUri: Uri? = null,
@@ -117,6 +119,9 @@ fun ResultScreen(
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val effectiveSettingsRepo = settingsRepository ?: remember(context) { SettingsRepository(context) }
+    val repoAutoRead by effectiveSettingsRepo.autoReadResult.collectAsStateWithLifecycle()
+    val isAutoReadEnabled = autoReadResult ?: repoAutoRead
 
     // Log raw JSON for developer inspection in debug mode only
     LaunchedEffect(result) {
@@ -139,10 +144,12 @@ fun ResultScreen(
     // Prepare speech text from ScamAnalysisResult extension
     val textToRead = remember(result) { result.toSpeechText() }
 
-    // Auto-read on launch if setting enabled
-    LaunchedEffect(Unit) {
-        if (autoReadResult && textToRead.isNotBlank()) {
+    // Auto-read on launch or whenever result / setting updates
+    LaunchedEffect(result, isAutoReadEnabled) {
+        if (isAutoReadEnabled && textToRead.isNotBlank()) {
             ttsHelper.speak(textToRead)
+        } else if (!isAutoReadEnabled) {
+            ttsHelper.stop()
         }
     }
 
@@ -877,13 +884,7 @@ fun ResultScreen(
             // Share Button — all statuses
             androidx.compose.material3.TextButton(
                 onClick = {
-                    val truncatedOpening = if (result.openingMessage.length > 80) {
-                        result.openingMessage.take(80) + "..."
-                    } else {
-                        result.openingMessage.ifBlank { "Nội dung đáng ngờ" }
-                    }
-                    val firstSignal = result.signals.firstOrNull() ?: "Không rõ"
-                    val shareText = "⚠️ AnTâm.AI vừa phát hiện: $truncatedOpening\nDấu hiệu: $firstSignal\n\nKiểm tra tin nhắn nghi ngờ miễn phí tại AnTâm.AI"
+                    val shareText = buildShareText(result)
                     val sendIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
                         putExtra(Intent.EXTRA_TEXT, shareText)
@@ -960,3 +961,24 @@ private data class StatusVisuals(
     val borderColor: Color,
     val textColor: Color
 )
+
+fun buildShareText(result: ScamAnalysisResult): String {
+    val truncatedOpening = if (result.openingMessage.length > 80) {
+        result.openingMessage.take(80) + "..."
+    } else {
+        result.openingMessage.ifBlank {
+            when (result.scamStatus) {
+                ScamStatus.DANGER -> "Nội dung lừa đảo nguy hiểm"
+                ScamStatus.WARNING -> "Nội dung cần thận trọng"
+                ScamStatus.SAFE, ScamStatus.UNKNOWN -> "Nội dung an toàn"
+            }
+        }
+    }
+    val prefix = when (result.scamStatus) {
+        ScamStatus.DANGER -> "🚨 AnTâm.AI CẢNH BÁO: $truncatedOpening"
+        ScamStatus.WARNING -> "⚠️ AnTâm.AI lưu ý: $truncatedOpening"
+        ScamStatus.SAFE, ScamStatus.UNKNOWN -> "✅ AnTâm.AI xác nhận AN TOÀN: $truncatedOpening"
+    }
+    val firstSignal = result.signals.firstOrNull() ?: "Không rõ"
+    return "$prefix\nDấu hiệu: $firstSignal\n\nKiểm tra tin nhắn nghi ngờ miễn phí tại AnTâm.AI"
+}
