@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,30 +26,37 @@ class SettingsRepository(context: Context) {
 
     fun saveRelativePhone(phone: String) {
         val cleanPhone = phone.trim()
-        prefs.edit().putString(KEY_RELATIVE_PHONE, cleanPhone).apply()
+        val committed = prefs.edit().putString(KEY_RELATIVE_PHONE, cleanPhone).commit()
+        Log.d("AnTamAI", "SettingsRepository.saveRelativePhone: phone=$cleanPhone, committed=$committed")
         _relativePhone.value = cleanPhone
     }
 
     fun clearRelativePhone() {
-        prefs.edit().remove(KEY_RELATIVE_PHONE).apply()
+        val committed = prefs.edit().remove(KEY_RELATIVE_PHONE).commit()
+        Log.d("AnTamAI", "SettingsRepository.clearRelativePhone: committed=$committed")
         _relativePhone.value = ""
     }
 
     fun getAutoReadResult(): Boolean {
-        return prefs.getBoolean(KEY_AUTO_READ_RESULT, false)
+        val enabled = prefs.getBoolean(KEY_AUTO_READ_RESULT, false)
+        return enabled
     }
 
     fun setAutoReadResult(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_AUTO_READ_RESULT, enabled).apply()
+        val committed = prefs.edit().putBoolean(KEY_AUTO_READ_RESULT, enabled).commit()
+        Log.d("AnTamAI", "SettingsRepository.setAutoReadResult: enabled=$enabled, committed=$committed")
         _autoReadResult.value = enabled
     }
 
     fun getAutoScanSms(): Boolean {
-        return prefs.getBoolean(KEY_AUTO_SCAN_SMS, true)
+        val enabled = prefs.getBoolean(KEY_AUTO_SCAN_SMS, true)
+        Log.d("AnTamAI", "SettingsRepository.getAutoScanSms: returning $enabled")
+        return enabled
     }
 
     fun setAutoScanSms(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_AUTO_SCAN_SMS, enabled).apply()
+        val committed = prefs.edit().putBoolean(KEY_AUTO_SCAN_SMS, enabled).commit()
+        Log.d("AnTamAI", "SettingsRepository.setAutoScanSms: enabled=$enabled, committed=$committed")
         _autoScanSms.value = enabled
     }
 

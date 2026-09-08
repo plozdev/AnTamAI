@@ -18,7 +18,10 @@ class SmsReceiver : BroadcastReceiver() {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
 
         val settingsRepository = SettingsRepository(context)
-        if (!settingsRepository.getAutoScanSms()) {
+        val isAutoScan = settingsRepository.getAutoScanSms()
+        Log.d("AnTamAI", "SmsReceiver.onReceive: isAutoScan=$isAutoScan")
+        if (!isAutoScan) {
+            Log.d("AnTamAI", "SmsReceiver: Auto scan is disabled, ignoring incoming SMS")
             return
         }
 
