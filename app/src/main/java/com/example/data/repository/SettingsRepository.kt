@@ -27,7 +27,7 @@ class SettingsRepository(context: Context) {
     fun saveRelativePhone(phone: String) {
         val cleanPhone = phone.trim()
         val committed = prefs.edit().putString(KEY_RELATIVE_PHONE, cleanPhone).commit()
-        Log.d("AnTamAI", "SettingsRepository.saveRelativePhone: phone=$cleanPhone, committed=$committed")
+        Log.d("AnTamAI", "SettingsRepository.saveRelativePhone: committed=$committed")
         _relativePhone.value = cleanPhone
     }
 

@@ -22,11 +22,7 @@ object JsonUtils {
             parsed?.copy(rawJson = cleanedJson)
         } catch (e: Exception) {
             try {
-                if (com.example.BuildConfig.DEBUG) {
-                    Log.w("AnTamAI", "Failed to parse ScamAnalysisResult from JSON: $json", e)
-                } else {
-                    Log.w("AnTamAI", "Failed to parse ScamAnalysisResult", e)
-                }
+                Log.w("AnTamAI", "Failed to parse ScamAnalysisResult", e)
             } catch (_: Throwable) {
                 // Ignore log errors in pure JVM unit test environment
             }

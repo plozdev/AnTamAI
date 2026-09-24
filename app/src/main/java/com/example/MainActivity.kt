@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Message
+import androidx.compose.material.icons.automirrored.outlined.Message
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
@@ -140,7 +140,7 @@ fun MainAppContent(
                             onClick = { viewModel.selectTab(AppTab.MESSAGES) },
                             icon = {
                                 Icon(
-                                    imageVector = if (currentTab == AppTab.MESSAGES) Icons.Filled.Message else Icons.Outlined.Message,
+                                    imageVector = if (currentTab == AppTab.MESSAGES) Icons.AutoMirrored.Filled.Message else Icons.AutoMirrored.Outlined.Message,
                                     contentDescription = "SMS",
                                     modifier = Modifier.size(24.dp)
                                 )

@@ -1,7 +1,6 @@
 package com.example.ui.screens
 
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +61,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import com.example.ui.theme.DangerBorder
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.LightBackground
@@ -82,6 +82,7 @@ import com.example.ui.theme.TextSubtle
 @Composable
 fun SettingsScreen(
     currentPhone: String,
+    modifier: Modifier = Modifier,
     autoReadResult: Boolean = false,
     autoScanSms: Boolean = true,
     protectedCount: Int = 0,
@@ -89,8 +90,7 @@ fun SettingsScreen(
     onClearPhone: () -> Unit,
     onToggleAutoRead: (Boolean) -> Unit = {},
     onToggleAutoScan: (Boolean) -> Unit = {},
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -448,7 +448,7 @@ fun SettingsScreen(
                 Button(
                     onClick = {
                         val intent = Intent(Intent.ACTION_DIAL).apply {
-                            data = Uri.parse("tel:$currentPhone")
+                            data = "tel:$currentPhone".toUri()
                         }
                         try {
                             context.startActivity(intent)

@@ -48,8 +48,8 @@ import com.example.ui.theme.TextMediumContrast
 
 @Composable
 fun AnalyzingScreen(
-    message: String = "Đang phân tích, vui lòng đợi trong giây lát...",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    message: String = "Đang phân tích, vui lòng đợi trong giây lát..."
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse_transition")
     val pulseScale by infiniteTransition.animateFloat(

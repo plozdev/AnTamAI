@@ -4,29 +4,25 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
-import android.media.ExifInterface
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
+import androidx.core.graphics.scale
+import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayOutputStream
-import java.io.InputStream
 import kotlin.math.max
 
 object ImageUtils {
 
     fun uriToBase64(context: Context, uri: Uri, maxDimension: Int = 1024): String? {
         return try {
-            val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-            val originalBitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
+            val originalBitmap = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
 
             if (originalBitmap == null) return null
 
             // Handle orientation from EXIF
             val rotatedBitmap = rotateBitmapIfRequired(context, uri, originalBitmap)
-            val scaledBitmap = scaleBitmap(rotatedBitmap, maxDimension)
-
-            bitmapToBase64(scaledBitmap)
+            bitmapToBase64(rotatedBitmap, maxDimension)
         } catch (e: Exception) {
             Log.w("AnTamAI", "Failed to decode and convert image URI ($uri) to base64", e)
             null
@@ -51,21 +47,20 @@ object ImageUtils {
         }
 
         val ratio = maxDimension.toFloat() / maxSide.toFloat()
-        val targetWidth = (width * ratio).toInt()
-        val targetHeight = (height * ratio).toInt()
+        val targetWidth = (width * ratio).toInt().coerceAtLeast(1)
+        val targetHeight = (height * ratio).toInt().coerceAtLeast(1)
 
-        return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+        return bitmap.scale(targetWidth, targetHeight)
     }
 
     private fun rotateBitmapIfRequired(context: Context, uri: Uri, bitmap: Bitmap): Bitmap {
         return try {
-            val input = context.contentResolver.openInputStream(uri) ?: return bitmap
-            val exif = ExifInterface(input)
-            val orientation = exif.getAttributeInt(
-                ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_NORMAL
-            )
-            input.close()
+            val orientation = context.contentResolver.openInputStream(uri)?.use { input ->
+                ExifInterface(input).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
+            } ?: return bitmap
 
             val matrix = Matrix()
             when (orientation) {

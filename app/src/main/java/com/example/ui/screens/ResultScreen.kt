@@ -1,9 +1,9 @@
 package com.example.ui.screens
 
+import android.content.ClipData
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -58,6 +58,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,14 +66,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.data.model.ScamAnalysisResult
@@ -103,10 +105,12 @@ import com.example.ui.theme.WarningBorder
 import com.example.ui.theme.WarningContainer
 import com.example.util.TextToSpeechHelper
 import com.example.util.toSpeechText
+import kotlinx.coroutines.launch
 
 @Composable
 fun ResultScreen(
     result: ScamAnalysisResult,
+    modifier: Modifier = Modifier,
     relativePhone: String = "",
     autoReadResult: Boolean? = null,
     settingsRepository: SettingsRepository? = null,
@@ -114,28 +118,14 @@ fun ResultScreen(
     originalImageBitmap: Bitmap? = null,
     originalImageUri: Uri? = null,
     onOpenSettings: () -> Unit = {},
-    onBackToHome: () -> Unit,
-    modifier: Modifier = Modifier
+    onBackToHome: () -> Unit
 ) {
     val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val coroutineScope = rememberCoroutineScope()
     val effectiveSettingsRepo = settingsRepository ?: remember(context) { SettingsRepository(context) }
     val repoAutoRead by effectiveSettingsRepo.autoReadResult.collectAsStateWithLifecycle()
     val isAutoReadEnabled = autoReadResult ?: repoAutoRead
-
-    // Log raw JSON for developer inspection in debug mode only
-    LaunchedEffect(result) {
-        if (com.example.BuildConfig.DEBUG) {
-            Log.d("AnTamAI", "=== GEMINI ANALYSIS RESULT ===")
-            Log.d("AnTamAI", "Status: ${result.status}")
-            Log.d("AnTamAI", "Opening: ${result.openingMessage}")
-            Log.d("AnTamAI", "Signals: ${result.signals}")
-            Log.d("AnTamAI", "Reminders: ${result.reminders}")
-            Log.d("AnTamAI", "Action: ${result.action}")
-            Log.d("AnTamAI", "Important Notes: ${result.importantNotes}")
-            Log.d("AnTamAI", "Hotline: ${result.officialHotline}")
-        }
-    }
 
     // Text To Speech Helper initialization and lifecycle
     val ttsHelper = remember { TextToSpeechHelper(context) }
@@ -758,12 +748,14 @@ fun ResultScreen(
             Button(
                 onClick = {
                     val intent = Intent(Intent.ACTION_DIAL).apply {
-                        data = Uri.parse("tel:$resolvedActionPhone")
+                        data = "tel:$resolvedActionPhone".toUri()
                     }
                     try {
                         context.startActivity(intent)
                     } catch (_: Exception) {
-                        clipboardManager.setText(AnnotatedString(resolvedActionPhone))
+                        coroutineScope.launch {
+                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("phone", resolvedActionPhone)))
+                        }
                         Toast.makeText(context, "Đã sao chép số: $resolvedActionPhone", Toast.LENGTH_SHORT).show()
                     }
                 },
@@ -801,12 +793,14 @@ fun ResultScreen(
             OutlinedButton(
                 onClick = {
                     val intent = Intent(Intent.ACTION_DIAL).apply {
-                        data = Uri.parse("tel:$relativePhone")
+                        data = "tel:$relativePhone".toUri()
                     }
                     try {
                         context.startActivity(intent)
                     } catch (_: Exception) {
-                        clipboardManager.setText(AnnotatedString(relativePhone))
+                        coroutineScope.launch {
+                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("phone", relativePhone)))
+                        }
                         Toast.makeText(context, "Đã sao chép số người thân: $relativePhone", Toast.LENGTH_SHORT).show()
                     }
                 },
@@ -853,7 +847,7 @@ fun ResultScreen(
                 androidx.compose.material3.TextButton(
                     onClick = {
                         val intent = Intent(Intent.ACTION_DIAL).apply {
-                            data = Uri.parse("tel:0692194053")
+                            data = "tel:0692194053".toUri()
                         }
                         try {
                             context.startActivity(intent)

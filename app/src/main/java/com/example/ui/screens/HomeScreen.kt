@@ -93,12 +93,12 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    modifier: Modifier = Modifier,
     relativePhone: String = "",
     onOpenSettings: () -> Unit = {},
     onAnalyzeText: (String) -> Unit,
     onAnalyzeImageUri: (Uri) -> Unit,
-    onAnalyzeImageBitmap: (Bitmap) -> Unit,
-    modifier: Modifier = Modifier
+    onAnalyzeImageBitmap: (Bitmap) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current

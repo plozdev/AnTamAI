@@ -134,6 +134,7 @@ private fun formatMessageDate(timestamp: Long): String {
 
 @Composable
 fun SmsInboxScreen(
+    modifier: Modifier = Modifier,
     smsEntities: List<SmsEntity> = emptyList(),
     fallbackMessages: List<SmsMessage> = emptyList(),
     isLoading: Boolean,
@@ -143,8 +144,7 @@ fun SmsInboxScreen(
     onOpenSmsItem: (SmsEntity) -> Unit = {},
     onDismissSms: (Long) -> Unit = {},
     onDismissAllSuspicious: () -> Unit = {},
-    onOpenSettings: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onOpenSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -678,8 +678,7 @@ fun SmsInboxScreen(
         }
 
     // DETAIL MODAL FOR SELECTED SMS
-    if (selectedSmsForDetail != null) {
-        val entity = selectedSmsForDetail!!
+    selectedSmsForDetail?.let { entity ->
         SmsEntityDetailDialog(
             entity = entity,
             onDismiss = { selectedSmsForDetail = null },

@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlin.time.Duration.Companion.milliseconds
 
 class ScamAnalysisRepository : IScamAnalysisRepository {
 
@@ -231,10 +232,10 @@ Chỉ trả lời bằng JSON đúng theo schema sau, không thêm text nào kh�
                 val is429 = isHttp429(lastError)
                 if (is429) {
                     onStatusUpdate?.invoke("Hệ thống đang quá tải, đang thử lại...")
-                    kotlinx.coroutines.delay(1500)
+                    kotlinx.coroutines.delay(1500.milliseconds)
                 } else {
                     onStatusUpdate?.invoke("Đang thử lại phân tích...")
-                    kotlinx.coroutines.delay(800)
+                    kotlinx.coroutines.delay(800.milliseconds)
                 }
             }
         }
